@@ -1,0 +1,45 @@
+name = "panoramicireland"
+main = "worker/entry.ts"
+compatibility_date = "2026-07-01"
+compatibility_flags = ["nodejs_compat"]
+
+[triggers]
+# Every 15 minutes — cheap to run, and keeps the gap between a hold expiring
+# and the slot reopening small regardless of which lifecycle (15min Stripe
+# hold or 72h manual-confirm hold) triggered it.
+crons = ["*/15 * * * *"]
+
+[assets]
+directory = "./dist"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "panoramicireland-db"
+database_id = "REPLACE_WITH_D1_DATABASE_ID"
+
+# Set these via `wrangler secret put <NAME>` — never commit real values.
+# STRIPE_SECRET_KEY
+# STRIPE_WEBHOOK_SECRET
+# GOOGLE_CALENDAR_CLIENT_EMAIL
+# GOOGLE_CALENDAR_PRIVATE_KEY
+# GOOGLE_CALENDAR_ID
+# RESEND_API_KEY
+
+[vars]
+PUBLIC_SITE_URL = "https://panoramicireland.com"
+# From the Access application you create for /admin* — see README.
+CF_ACCESS_TEAM_DOMAIN = "REPLACE_WITH_YOUR_TEAM_DOMAIN"
+CF_ACCESS_AUD = "REPLACE_WITH_ACCESS_APP_AUD_TAG"
+# Where contact-form enquiries land — not secret, just config.
+ENQUIRY_TO_EMAIL = "contact@panoramicireland.com"
+ENQUIRY_FROM_EMAIL = "Panoramic Ireland <enquiries@panoramicireland.com>"
+
+[observability]
+enabled = true
+
+[env.preview]
+
+[[env.preview.d1_databases]]
+binding = "DB"
+database_name = "panoramicireland-db-preview"
+database_id = "REPLACE_WITH_PREVIEW_D1_DATABASE_ID"

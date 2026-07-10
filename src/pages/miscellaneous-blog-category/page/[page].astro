@@ -1,0 +1,20 @@
+---
+export const prerender = true;
+
+import BlogHubPage from '../../../components/blog/BlogHubPage.astro';
+import { getBlogHubStaticPaths } from '../../../lib/blog-hub';
+
+export async function getStaticPaths() {
+  return getBlogHubStaticPaths('miscellaneous-blog-category');
+}
+
+const page = Number(Astro.params.page);
+---
+
+<BlogHubPage
+  page={page}
+  categoryPrefix="miscellaneous-blog-category"
+  title="Miscellaneous Blog"
+  eyebrow="Journal"
+  description="Personal notes, seasonal reflections, and wider photography stories."
+/>

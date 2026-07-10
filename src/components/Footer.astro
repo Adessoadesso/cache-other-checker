@@ -1,0 +1,124 @@
+---
+import { guideMenu } from '../data/guide-menu';
+import { workshopsMenu } from '../data/workshops-menu';
+
+const year = new Date().getFullYear();
+---
+
+<footer class="site-footer">
+  <div class="container grid">
+    <div class="about-col">
+      <p class="wordmark">Panoramic <span>Ireland</span></p>
+      <p>Private photography experiences across Ireland, Scotland, Italy and more.</p>
+      <ul>
+        <li><a href="/">Home</a></li>
+        <li><a href="/dublin">Dublin Photo Tours</a></li>
+        <li><a href="/about">About</a></li>
+        <li><a href="/blog">Blog</a></li>
+        <li><a href="/contact">Contact</a></li>
+      </ul>
+    </div>
+    <div>
+      <h2>Photo Workshops</h2>
+      <ul>
+        {workshopsMenu.map((node) => (
+          <li><a href={`/${node.path}`}>{node.title}</a></li>
+        ))}
+      </ul>
+    </div>
+    <div>
+      <h2>Guide to Ireland</h2>
+      <ul>
+        {guideMenu.map((node) => (
+          <li><a href={`/${node.path}`}>{node.title}</a></li>
+        ))}
+      </ul>
+      <h2 class="contact-heading">Enquire</h2>
+      <ul>
+        <li><a href="mailto:contact@panoramicireland.com">contact@panoramicireland.com</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="container legal">
+    <p>&copy; {year} Panoramic Ireland. All rights reserved.</p>
+  </div>
+</footer>
+
+<style>
+  .site-footer {
+    background: var(--color-forest-900);
+    color: var(--color-paper-dim);
+    padding-block: var(--space-xl) var(--space-l);
+    margin-top: var(--space-xl);
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: 1.3fr 1fr 1fr;
+    gap: var(--space-l);
+  }
+
+  .about-col p {
+    max-width: 30ch;
+  }
+
+  .wordmark {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    color: var(--color-paper);
+    margin-bottom: var(--space-xs);
+  }
+
+  .wordmark span {
+    color: var(--color-gold-300);
+    font-style: italic;
+    font-weight: 400;
+  }
+
+  h2 {
+    color: var(--color-gold-300);
+    font-size: var(--step-small);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-family: var(--font-body);
+    font-weight: 700;
+  }
+
+  .contact-heading {
+    margin-top: var(--space-m);
+  }
+
+  ul {
+    list-style: none;
+    margin: 0 0 var(--space-s);
+    padding: 0;
+  }
+
+  li {
+    margin-bottom: 0.5rem;
+  }
+
+  a {
+    color: var(--color-paper-dim);
+    text-decoration: none;
+    font-size: var(--step-small);
+  }
+
+  a:hover {
+    color: var(--color-gold-300);
+  }
+
+  .legal {
+    margin-top: var(--space-l);
+    padding-top: var(--space-m);
+    border-top: 1px solid rgba(247, 243, 233, 0.12);
+    font-size: var(--step-small);
+  }
+
+  @media (max-width: 780px) {
+    .grid {
+      grid-template-columns: 1fr;
+      gap: var(--space-m);
+    }
+  }
+</style>

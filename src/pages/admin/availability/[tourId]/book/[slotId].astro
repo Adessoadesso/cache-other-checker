@@ -1,0 +1,67 @@
+---
+import AdminLayout from '../../../../../layouts/AdminLayout.astro';
+import { env } from 'cloudflare:workers';
+
+export const prerender = false;
+
+const { tourId, slotId } = Astro.params;
+
+const tour = await env.DB.prepare('SELECT * FROM tours WHERE id = ?').bind(tourId).first<any>();
+const slot = await env.DB.prepare('SELECT * FROM availability_slots WHERE id = ? AND tour_id = ?')
+  .bind(slotId, tourId)
+  .first<any>();
+
+if (!tour || !slot) {
+  return new Response('Not found', { status: 404 });
+}
+if (slot.status !== 'open') {
+  return Astro.redirect(`/admin/availability/${tourId}`, 303);
+}
+---
+
+<AdminLayout title={`Book ${tour.title}`}>
+  <a href={`/admin/availability/${tourId}`} class="back">&larr; {tour.title}</a>
+  <h1>Take a booking</h1>
+  <p>
+    {new Date(slot.starts_at).toLocaleString('en-IE', { dateStyle: 'full', timeStyle: 'short' })}
+  </p>
+
+  <form method="POST" action={`/admin/api/availability/${slotId}/book`} class="admin-form">
+    <label for="guestName">Guest name</label>
+    <input type="text" id="guestName" name="guestName" required />
+
+    <label for="guestEmail">Email</label>
+    <input type="email" id="guestEmail" name="guestEmail" required />
+
+    <label for="guestPhone">Phone</label>
+    <input type="tel" id="guestPhone" name="guestPhone" />
+
+    <label for="guestCount">Guest count</label>
+    <input type="number" id="guestCount" name="guestCount" min="1" max="12" value="2" required />
+
+    <label for="amountEur">Total price (&euro;)</label>
+    <input type="number" id="amountEur" name="amountEur" min="0" step="1" value={(tour.base_price_eur / 100).toFixed(0)} required />
+
+    <label for="notes">Notes</label>
+    <textarea id="notes" name="notes" rows="3"></textarea>
+
+    <button type="submit" class="btn-block btn-confirm" style="margin-top:1rem;">Save as requested</button>
+  </form>
+  <p class="hint">This holds the slot and adds it to the Bookings queue — it still needs a separate Confirm before it's on the calendar.</p>
+</AdminLayout>
+
+<style>
+  .back {
+    display: inline-block;
+    margin-bottom: 0.75rem;
+    color: var(--color-forest-700);
+    font-weight: 700;
+    text-decoration: none;
+  }
+
+  .hint {
+    color: var(--color-ink-soft);
+    font-size: var(--step-small);
+    margin-top: 0.75rem;
+  }
+</style>

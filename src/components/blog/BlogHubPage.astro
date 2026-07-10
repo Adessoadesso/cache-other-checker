@@ -1,0 +1,157 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import BlogArticleCard from './BlogArticleCard.astro';
+import BlogSidebar from './BlogSidebar.astro';
+import {
+  BLOG_CATEGORY_PAGE_SIZE,
+  BLOG_PAGE_SIZE,
+  categoryStats,
+  hubPagePath,
+  paginatePosts,
+  postsForHub,
+  type CategoryStat,
+} from '../../lib/blog-hub';
+import { allPublishedPosts, type BlogCategoryPrefix } from '../../lib/blog';
+
+interface Props {
+  page?: number;
+  categoryPrefix?: BlogCategoryPrefix;
+  title?: string;
+  description?: string;
+  eyebrow?: string;
+}
+
+const {
+  page = 1,
+  categoryPrefix,
+  title = 'Blog',
+  description = 'Field notes, location guides, and photography stories from across Ireland.',
+  eyebrow = 'Journal',
+} = Astro.props;
+
+const allPosts = await postsForHub(categoryPrefix);
+const pageSize = categoryPrefix ? BLOG_CATEGORY_PAGE_SIZE : BLOG_PAGE_SIZE;
+const { posts, currentPage, totalPages, totalPosts } = paginatePosts(allPosts, page, pageSize);
+const expandedEntries = Boolean(categoryPrefix);
+const categories: CategoryStat[] = categoryStats(await allPublishedPosts());
+---
+
+<BaseLayout title={`${title} - Panoramic Ireland`} description={description}>
+  <section class="container blog-hub">
+    <header class="blog-hub__header">
+      <p class="eyebrow">{eyebrow}</p>
+      <h1>{title}</h1>
+      <p class="lede">{description}</p>
+      <p class="result-count">{totalPosts} articles</p>
+    </header>
+
+    <div class:list={["blog-hub__layout", { "blog-hub__layout--wide": expandedEntries }]}>
+      <div class="blog-hub__main">
+        {posts.length === 0 && <p>No posts yet.</p>}
+        <div class="blog-hub__cards">
+          {posts.map((post) => (
+            <BlogArticleCard post={post} variant={expandedEntries ? 'expanded' : 'card'} />
+          ))}
+        </div>
+
+        {totalPages > 1 && (
+          <nav class="pagination" aria-label="Blog pages">
+            {currentPage > 1 && (
+              <a class="pagination__link" href={hubPagePath(categoryPrefix, currentPage - 1)}>
+                Newer
+              </a>
+            )}
+            <span class="pagination__status">Page {currentPage} of {totalPages}</span>
+            {currentPage < totalPages && (
+              <a class="pagination__link" href={hubPagePath(categoryPrefix, currentPage + 1)}>
+                Older
+              </a>
+            )}
+          </nav>
+        )}
+      </div>
+
+      {!expandedEntries && <BlogSidebar categories={categories} />}
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .blog-hub {
+    padding-block: var(--space-xl) var(--space-l);
+  }
+
+  .blog-hub__header {
+    margin-bottom: var(--space-l);
+    max-width: 52rem;
+  }
+
+  .lede {
+    color: var(--color-ink-soft);
+    max-width: 55ch;
+  }
+
+  .result-count {
+    font-family: var(--font-body);
+    font-size: var(--step-small);
+    color: var(--color-ink-soft);
+    margin-top: var(--space-s);
+  }
+
+  .blog-hub__layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(240px, 300px);
+    gap: var(--space-l);
+    align-items: start;
+  }
+
+  .blog-hub__layout--wide {
+    display: block;
+  }
+
+  .blog-hub__cards {
+    display: grid;
+    gap: var(--space-m);
+  }
+
+  .blog-hub__layout--wide .blog-hub__cards {
+    gap: var(--space-l);
+  }
+
+  .pagination {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-s);
+    align-items: center;
+    justify-content: space-between;
+    margin-top: var(--space-l);
+    padding-top: var(--space-m);
+    border-top: 1px solid var(--color-line);
+    font-family: var(--font-body);
+    font-size: var(--step-small);
+  }
+
+  .pagination__link {
+    color: var(--color-forest-700);
+    font-weight: 700;
+    text-decoration: none;
+  }
+
+  .pagination__link:hover {
+    color: var(--color-gold-600);
+  }
+
+  .pagination__status {
+    color: var(--color-ink-soft);
+  }
+
+  @media (max-width: 960px) {
+    .blog-hub__layout {
+      grid-template-columns: 1fr;
+    }
+
+    .blog-hub__main {
+      order: 1;
+    }
+  }
+</style>

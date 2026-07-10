@@ -1,0 +1,7 @@
+{
+  "legacyPath": "/guide-to-ireland/getting-to-ireland",
+  "title": "Getting to Ireland",
+  "description": "Practical guide links for travelling to Ireland by air and by sea.",
+  "html": "\n<section class=\"pi-section\" style=\"padding-top:75px;padding-bottom:75px\"><div class=\"pi-container\"><div class=\"pi-row\"><div class=\"pi-col\" style=\"--basis:75%\"><div><p>Most visitors reach Ireland by air or by sea. These guides collect the practical route information from the previous site while the wider travel section is being refreshed for Astro.</p>\n<p><img src=\"/images/guideWM/500x309-8376wm.jpg\" alt=\"On approach into Dublin Airport, over the Irish Sea\" width=\"500\" height=\"309\" loading=\"lazy\" decoding=\"async\" style=\"border:3px solid black;margin:3px\"></p>\n<ul>\n<li><a href=\"/guide-to-ireland/getting-to-ireland/getting-to-ireland-by-air\">Getting to Ireland by Air</a></li>\n<li><a href=\"/guide-to-ireland/getting-to-ireland/getting-to-ireland-by-sea\">Getting to Ireland by Sea</a></li>\n</ul></div></div><div class=\"pi-col\" style=\"--basis:25%\"></div></div></div></section>\n",
+  "layout": "marketing"
+}

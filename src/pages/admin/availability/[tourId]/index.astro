@@ -1,0 +1,129 @@
+---
+import AdminLayout from '../../../../layouts/AdminLayout.astro';
+import { env } from 'cloudflare:workers';
+
+export const prerender = false;
+
+const { tourId } = Astro.params;
+
+const tour = await env.DB.prepare('SELECT * FROM tours WHERE id = ?').bind(tourId).first<any>();
+if (!tour) {
+  return new Response('Tour not found', { status: 404 });
+}
+
+const { results: slots } = await env.DB.prepare(
+  `SELECT * FROM availability_slots
+   WHERE tour_id = ? AND starts_at > datetime('now', '-1 day')
+   ORDER BY starts_at ASC`
+)
+  .bind(tourId)
+  .all();
+---
+
+<AdminLayout title={tour.title}>
+  <a href="/admin/availability" class="back">&larr; Availability</a>
+  <h1>{tour.title}</h1>
+
+  <details class="admin-card">
+    <summary>+ Add a slot</summary>
+    <form method="POST" action="/admin/api/availability/create" class="admin-form">
+      <input type="hidden" name="tourId" value={tourId} />
+      <label for="starts_at">Starts</label>
+      <input type="datetime-local" id="starts_at" name="starts_at" required />
+      <label for="ends_at">Ends</label>
+      <input type="datetime-local" id="ends_at" name="ends_at" required />
+      <button type="submit" class="btn-block btn-confirm" style="margin-top:1rem;">Add slot</button>
+    </form>
+  </details>
+
+  {slots.length === 0 && <p class="empty-state">No upcoming slots for this tour yet.</p>}
+
+  {slots.map((s: any) => (
+    <div class="admin-card slot-row">
+      <div>
+        <span class={`status-badge status-${s.status}`}>{s.status}</span>
+        <p class="slot-time">
+          {new Date(s.starts_at).toLocaleString('en-IE', { dateStyle: 'medium', timeStyle: 'short' })}
+          &ndash;
+          {new Date(s.ends_at).toLocaleString('en-IE', { timeStyle: 'short' })}
+        </p>
+      </div>
+      <div class="slot-actions">
+        {s.status === 'open' && (
+          <>
+            <a href={`/admin/availability/${tourId}/book/${s.id}`} class="link-btn">Take a booking</a>
+            <form method="POST" action={`/admin/api/availability/${s.id}/status`}>
+              <input type="hidden" name="status" value="cancelled" />
+              <button type="submit" class="link-btn danger">Cancel</button>
+            </form>
+          </>
+        )}
+        {s.status === 'cancelled' && (
+          <form method="POST" action={`/admin/api/availability/${s.id}/status`}>
+            <input type="hidden" name="status" value="open" />
+            <button type="submit" class="link-btn">Reopen</button>
+          </form>
+        )}
+        {s.status === 'held' && <span class="hint-inline">Has a pending booking — manage it from Bookings.</span>}
+      </div>
+    </div>
+  ))}
+</AdminLayout>
+
+<style>
+  .back {
+    display: inline-block;
+    margin-bottom: 0.75rem;
+    color: var(--color-forest-700);
+    font-weight: 700;
+    text-decoration: none;
+  }
+
+  details summary {
+    cursor: pointer;
+    font-weight: 700;
+    color: var(--color-forest-700);
+  }
+
+  .slot-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+
+  .slot-time {
+    margin: 0.35rem 0 0;
+  }
+
+  .slot-actions {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+
+  .slot-actions form {
+    margin: 0;
+  }
+
+  .link-btn {
+    background: none;
+    border: none;
+    padding: 0;
+    color: var(--color-forest-700);
+    font-weight: 700;
+    text-decoration: underline;
+    cursor: pointer;
+    font-size: var(--step-small);
+  }
+
+  .link-btn.danger {
+    color: #8a2c2c;
+  }
+
+  .hint-inline {
+    font-size: var(--step-small);
+    color: var(--color-ink-soft);
+  }
+</style>

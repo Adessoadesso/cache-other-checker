@@ -1,0 +1,2 @@
+<style type="text/css">.sige_cont_0 {width:230px;height:183px;float:left;display:inline-block;}
+</style>

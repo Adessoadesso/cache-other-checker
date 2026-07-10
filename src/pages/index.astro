@@ -1,0 +1,561 @@
+﻿---
+export const prerender = true;
+
+import BaseLayout from '../layouts/BaseLayout.astro';
+import CrossfadeHero from '../components/CrossfadeHero.astro';
+import SmartImage from '../components/SmartImage.astro';
+import { allPublishedPosts, postUrl } from '../lib/blog';
+import { categoryStats, formatBlogDate, postCategoryLink, postDisplayDate, postsForHub } from '../lib/blog-hub';
+
+const heroSlides = [
+  { src: '/images/hero/dublin-night.jpg', alt: 'Samuel Beckett Bridge and the Dublin skyline lit up at night' },
+  { src: '/images/hero/connemara.jpg', alt: 'Mist over the mountains of Connemara at dawn' },
+  { src: '/images/hero/causeway.jpg', alt: 'Basalt columns of the Giant\u2019s Causeway at low tide' },
+];
+
+const valueProps = [
+  {
+    title: 'Photography Tours',
+    body: 'One to one and small group photography tours and workshops in Dublin and across Ireland.',
+  },
+  {
+    title: 'Expert Guidance',
+    body: 'Guidance, tuition and critique on your images and workflow before, during and after your tour or workshop.',
+  },
+  {
+    title: 'Photography Workshops',
+    body: 'Learn to make better images, learn new techniques and enjoy the challenge with our one-to-one photography workshops.',
+  },
+];
+
+const essentialPlaces = [
+  {
+    name: 'Dublin',
+    blurb: "home to Guinness, Croke Park and The Book of Kells; you can't miss Dublin, a city that has improved over the past 10 years.",
+    href: '/dublin',
+  },
+  {
+    name: 'Wicklow',
+    blurb: 'mountainous and empty yet less than an hour from Dublin, Wicklow is home to the most famous hermitage in Ireland at Glendalough.',
+    href: '/photography-workshops-ireland/book-a-wicklow-ireland-photo-tour',
+  },
+  {
+    name: 'Belfast & the Antrim Coast',
+    blurb: 'the land of myths and legends, saints and scholars, Northern Ireland has some of the finest landscape photography.',
+    href: '/photography-workshops-ireland/northern-ireland-photography-workshops-photo-tours',
+  },
+  {
+    name: 'Dingle',
+    blurb: 'the farthest west that you can get in Ireland, and a peninsula that has more pubs than you could ever visit. Visually stunning.',
+    href: '/photography-workshops-ireland/book-a-dingle-ireland-photo-tour',
+  },
+  {
+    name: 'The Burren',
+    blurb: 'a unique geological landscape, The Burren is home to arctic, alpine and mediterranean plants.',
+    href: null,
+  },
+  {
+    name: 'Connemara',
+    blurb: 'rugged and wild, full of bogs, sea and sky as well as a few ponies of distinction.',
+    href: '/photography-workshops-ireland/coastal-photography-course/galway-connemara-coastal-workshop',
+  },
+  {
+    name: 'Donegal',
+    blurb: 'the most northerly county in Ireland, the Atlantic coastline is second to none with the sea cliffs of Slieve League and miles-long sandy beaches.',
+    href: '/photo-tours-blog/scenic-fanad-lighthouse-donegal-atlantic-ireland-most-photographed',
+  },
+];
+
+const latestPosts = (await postsForHub()).slice(0, 3);
+const latestPostCards = latestPosts.map((post) => ({
+  post,
+  displayDate: postDisplayDate(post),
+  category: postCategoryLink(post),
+}));
+const blogCategories = categoryStats(await allPublishedPosts());
+---
+
+<BaseLayout
+  title="Panoramic Ireland â€” Private Photography Tours with Darren McLoughlin"
+  description="Private, small-group photography tours across Ireland and Northern Ireland led by photographer Darren McLoughlin. Wild Atlantic light, Georgian Dublin, and the Causeway Coast."
+>
+  <CrossfadeHero
+    slides={heroSlides}
+    eyebrow="Private Photography Tours"
+    headline="See Ireland the way the light actually falls."
+    subhead="Small-group and one-to-one tours led by Darren McLoughlin, built around the weather, the tide, and the hour â€” not a fixed itinerary."
+    ctaLabel="Explore Workshops"
+    ctaHref="/photography-workshops-ireland"
+  />
+
+  <section class="value-props container">
+    {valueProps.map((v) => (
+      <div class="value-prop">
+        <h3>{v.title}</h3>
+        <p>{v.body}</p>
+      </div>
+    ))}
+  </section>
+
+  <section class="intro container">
+    <div class="intro-copy">
+      <p class="eyebrow">Panoramic Ireland's Ireland</p>
+      <h2>Anywhere in Ireland, built around you</h2>
+      <p>
+        From the chief city on the island to the charming mediaeval gem that is Kilkenny City, to the
+        stunning geological landscapes of Northern Ireland's Antrim Coast or the lesser-visited South
+        Armagh. Contact Panoramic Ireland today to arrange a personalised tour and photography
+        workshop anywhere in Ireland.
+      </p>
+      <a href="/contact" class="btn btn-primary">Get in Touch</a>
+    </div>
+    <SmartImage
+      src="/images/home/connemara-hills.jpg"
+      alt="Rolling hills and mist over the Connemara landscape"
+      class="intro-image"
+    />
+  </section>
+
+  <section class="faq">
+    <div class="container faq-grid">
+      <SmartImage
+        src="/images/home/dublin-lamp-evening.jpg"
+        alt="A gas lamp on a Dublin street at dusk"
+        class="faq-image"
+      />
+      <div class="faq-copy">
+        <p class="eyebrow">Tour or Workshop?</p>
+        <h2>What Is A Photo Tour?</h2>
+        <p>
+          <strong>What is a photo tour</strong> and is it different to a <strong>photography workshop</strong>?
+          This is a question we get asked a lot. There is no real difference but simply, a tour is
+          more focused on seeing the place with a photographic emphasis while a workshop is
+          specifically designed to concentrate on one or more aspects of your photographic technique,
+          equipment or composition. Both tour and workshop are interchangeable and there is a degree
+          of overlap.
+        </p>
+        <p>
+          Because we tailor each tour to suit your needs, we choose the appropriate locations and
+          times to maximise your time in Ireland and help you to improve your photography.
+        </p>
+        <p>
+          Don't forget that we offer Gift Vouchers for Christmas and all year round for birthdays and
+          other occasions. A photography gift voucher entitles the holder to the same benefits as a
+          direct booking: one-to-one photography tuition, a choice of locations in Dublin, Wicklow and
+          the rest of Ireland, morning or evening photography workshops, follow-on advice and critique
+          on images.
+        </p>
+        <a href="/contact" class="btn btn-outline-forest">Ask About a Photo Tour</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="why-ireland container">
+    <div class="why-ireland-media">
+      <SmartImage
+        src="/images/home/dublin-street-bw.jpg"
+        alt="A quiet cobbled Dublin street at night, black and white"
+        class="why-ireland-image"
+      />
+      <a href="/dublin" class="btn btn-outline-forest">Dublin Photo Tours</a>
+    </div>
+    <div class="why-ireland-copy">
+      <p>
+        What makes Ireland so special? Perhaps it is the landscapes, the history, the people, or a
+        combination of all of these that bring seven million visitors every year to this little
+        island.
+      </p>
+      <p>
+        Dublin is the capital of Ireland and the chief city on the island; Belfast is the second
+        largest, and the chief city of Northern Ireland. The island has two currencies and two
+        governments, but there are no border controls between the north and south â€” indeed, it's
+        quite easy to drive from one side to the other without knowing it.
+      </p>
+      <p>
+        It is true, in Ireland it rains a bit (isn't that why it's so green?) â€” but don't let that put
+        you off, because it doesn't rain as much as you think. With some good luck there will be fine
+        weather during your visit.
+      </p>
+      <p>
+        Ireland makes a perfect location to improve your photography or to enhance your image
+        collection. Contact us today to learn more about our bespoke tour options.
+      </p>
+    </div>
+  </section>
+
+  <section class="highlights container">
+    <div class="highlight-card">
+      <SmartImage
+        src="/images/home/darren-higgins.jpg"
+        alt="Darren McLoughlin meeting Irish President Michael D. Higgins"
+        class="highlight-image"
+      />
+      <h3>Panoramic Ireland Meets Irish President Michael D. Higgins</h3>
+      <p>
+        Here I am (just so you know that I am actually a real person) meeting Irish President Michael
+        D. Higgins at the Festival Interceltique de Lorient in France.
+      </p>
+    </div>
+    <div class="highlight-card">
+      <SmartImage
+        src="/images/home/stone-circle-summer.jpg"
+        alt="An ancient stone circle under a stormy summer sky in the Irish countryside"
+        class="highlight-image"
+      />
+      <p class="eyebrow">Image of the Season â€” Summer 2026</p>
+      <h3>The beauty of the Irish countryside</h3>
+      <p>
+        Green, and with colour in the stormy sky above an ancient stone circle. Take one of Panoramic
+        Ireland's private photography tours from Belfast to Cork to Dublin to Galway â€” perfect for
+        avoiding the crowds and finding scenic seascapes, landscapes, and cityscapes to photograph.
+        Bookable now.
+      </p>
+      <a href="/contact" class="btn btn-outline-forest">Read More</a>
+    </div>
+  </section>
+
+  <section class="essentials container">
+    <p class="eyebrow">Where To Go</p>
+    <h2>Seven Essential Places to Photograph in Ireland</h2>
+    <ol class="essentials-list">
+      {essentialPlaces.map((place) => (
+        <li>
+          <span class="essentials-name">
+            {place.href ? <a href={place.href}>{place.name}</a> : place.name}
+          </span>
+          <span class="essentials-blurb"> â€” {place.blurb}</span>
+        </li>
+      ))}
+    </ol>
+    <p>
+      Have a look at the <a href="/blog">blog</a> for more stories, events, and information on the
+      places mentioned. Why not book a photography tour with us and learn about the real Ireland and
+      how to make better images?
+    </p>
+  </section>
+
+  {latestPosts.length > 0 && (
+    <section class="latest-posts">
+      <div class="container">
+        <p class="eyebrow">Journal</p>
+        <h2>Latest Posts From Our Blog</h2>
+        <div class="post-grid">
+          {latestPostCards.map(({ post, displayDate, category }) => (
+            <a class="post-card" href={postUrl(post)}>
+              {post.data.heroImage && (
+                <SmartImage src={post.data.heroImage} alt={post.data.heroImageAlt ?? ''} class="post-card-image" />
+              )}
+              <div class="post-card-meta">
+                <time datetime={displayDate.toISOString()}>{formatBlogDate(displayDate)}</time>
+                {category && <span>{category.title}</span>}
+                <span>{post.data.author}</span>
+              </div>
+              {post.data.kicker && <p class="kicker">{post.data.kicker}</p>}
+              <h3>{post.data.title}</h3>
+              <p>{post.data.standfirst ?? post.data.description}</p>
+            </a>
+          ))}
+        </div>
+
+        {blogCategories.length > 0 && (
+          <div class="category-list">
+            <h3>Blog Category</h3>
+            <ul>
+              {blogCategories.map((category) => (
+                <li><a href={category.href}>{category.title} ({category.count})</a></li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+    </section>
+  )}
+
+  <section class="cta container">
+    <h2>Plan a private tour</h2>
+    <p>Tell us your dates, group size, and the kind of light you're after â€” we'll build the route around it.</p>
+    <a href="/contact" class="btn btn-primary">Start an Enquiry</a>
+  </section>
+</BaseLayout>
+
+<style>
+  .btn-outline-forest {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    border: 1px solid var(--color-forest-700);
+    border-radius: var(--radius);
+    color: var(--color-forest-700);
+    font-weight: 700;
+    font-size: var(--step-small);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    text-decoration: none;
+    transition: background-color var(--transition), color var(--transition);
+  }
+
+  .btn-outline-forest:hover {
+    background: var(--color-forest-700);
+    color: var(--color-paper);
+  }
+
+  .value-props {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-l);
+    padding-block: var(--space-xl);
+    text-align: center;
+  }
+
+  .value-prop h3 {
+    font-size: 1.3rem;
+  }
+
+  .value-prop p {
+    color: var(--color-ink-soft);
+    margin-inline: auto;
+  }
+
+  .intro {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-l);
+    align-items: center;
+    padding-block: var(--space-xl);
+  }
+
+  .intro-copy p {
+    color: var(--color-ink-soft);
+  }
+
+  .intro-image {
+    aspect-ratio: 4 / 3;
+    border-radius: var(--radius);
+  }
+
+  .faq {
+    background: var(--color-paper-dim);
+    padding-block: var(--space-xl);
+  }
+
+  .faq-grid {
+    display: grid;
+    grid-template-columns: 1fr 1.2fr;
+    gap: var(--space-l);
+    align-items: center;
+  }
+
+  .faq-image {
+    aspect-ratio: 3 / 4;
+    border-radius: var(--radius);
+  }
+
+  .faq-copy p {
+    font-family: var(--font-serif-body);
+    color: var(--color-ink-soft);
+    font-size: 1.05rem;
+    line-height: 1.7;
+  }
+
+  .why-ireland {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-l);
+    padding-block: var(--space-xl);
+  }
+
+  .why-ireland-media {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-s);
+    align-items: flex-start;
+  }
+
+  .why-ireland-image {
+    width: 100%;
+    aspect-ratio: 3 / 4;
+    border-radius: var(--radius);
+  }
+
+  .why-ireland-copy p {
+    font-family: var(--font-serif-body);
+    color: var(--color-ink-soft);
+    font-size: 1.05rem;
+    line-height: 1.7;
+  }
+
+  .highlights {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-l);
+    padding-block: var(--space-xl);
+  }
+
+  .highlight-image {
+    aspect-ratio: 4 / 3;
+    border-radius: var(--radius);
+    margin-bottom: var(--space-s);
+  }
+
+  .highlight-card p {
+    color: var(--color-ink-soft);
+  }
+
+  .essentials {
+    padding-block: var(--space-xl);
+    max-width: 52rem;
+  }
+
+  .essentials-list {
+    margin: var(--space-l) 0;
+    padding-left: 1.25rem;
+  }
+
+  .essentials-list li {
+    margin-bottom: 0.6rem;
+  }
+
+  .essentials-name a {
+    font-weight: 700;
+  }
+
+  .essentials-blurb {
+    color: var(--color-ink-soft);
+  }
+
+  .latest-posts {
+    background: var(--color-paper-dim);
+    padding-block: var(--space-xl);
+  }
+
+  .post-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-m);
+    margin-top: var(--space-l);
+  }
+
+  .post-card {
+    display: block;
+    background: var(--color-paper);
+    border: 1px solid var(--color-line);
+    text-decoration: none;
+    color: var(--color-ink);
+    overflow: hidden;
+  }
+
+  .post-card-image {
+    aspect-ratio: 16 / 10;
+  }
+
+  .post-card-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.2rem 0.45rem;
+    margin: 0.75rem var(--space-s) 0.6rem;
+    color: var(--color-ink-soft);
+    font-family: var(--font-body);
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    line-height: 1.35;
+    text-transform: uppercase;
+  }
+
+  .post-card-meta > * {
+    display: inline-flex;
+    align-items: center;
+    min-width: 0;
+  }
+
+  .post-card-meta > *:not(:first-child)::before {
+    content: '/';
+    margin-right: 0.45rem;
+    color: var(--color-gold-600);
+    opacity: 0.7;
+  }
+
+  .post-card .kicker {
+    color: var(--color-gold-600);
+    font-size: var(--step-small);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin: var(--space-s) var(--space-s) 0.25rem;
+  }
+
+  .post-card h3 {
+    font-size: 1.15rem;
+    margin: 0 var(--space-s) 0.4rem;
+  }
+
+  .post-card p:not(.kicker) {
+    color: var(--color-ink-soft);
+    font-size: var(--step-small);
+    margin: 0 var(--space-s) var(--space-s);
+  }
+
+  .category-list {
+    margin-top: var(--space-xl);
+  }
+
+  .category-list h3 {
+    font-size: 1.1rem;
+  }
+
+  .category-list ul {
+    list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    padding: 0;
+    margin-top: var(--space-s);
+  }
+
+  .category-list a {
+    display: inline-block;
+    padding: 0.4rem 0.9rem;
+    background: var(--color-paper);
+    border: 1px solid var(--color-line);
+    border-radius: 999px;
+    font-size: var(--step-small);
+    text-decoration: none;
+    color: var(--color-forest-700);
+    font-weight: 700;
+  }
+
+  .category-list a:hover {
+    border-color: var(--color-gold-500);
+  }
+
+  .cta {
+    padding-block: var(--space-xl);
+    text-align: center;
+    max-width: 40rem;
+  }
+
+  .cta p {
+    margin-inline: auto;
+  }
+
+  @media (max-width: 900px) {
+    .intro,
+    .faq-grid,
+    .why-ireland,
+    .highlights {
+      grid-template-columns: 1fr;
+    }
+
+    .value-props {
+      grid-template-columns: 1fr;
+      gap: var(--space-m);
+    }
+
+    .post-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+

@@ -1,0 +1,14 @@
+---
+export const prerender = true;
+
+import BlogHubPage from '../../../components/blog/BlogHubPage.astro';
+import { getBlogHubStaticPaths } from '../../../lib/blog-hub';
+
+export async function getStaticPaths() {
+  return getBlogHubStaticPaths();
+}
+
+const page = Number(Astro.params.page);
+---
+
+<BlogHubPage page={page} />

@@ -1,0 +1,10 @@
+RewriteEngine On
+RewriteCond %{REQUEST_METHOD} OPTIONS
+RewriteRule ^ - [L]
+
+<IfModule mod_headers.c>
+    Header always set Access-Control-Allow-Origin "https://funfinder.cheapfunthingstodo.com"
+    Header always set Access-Control-Allow-Methods "GET, OPTIONS"
+    Header always set Access-Control-Allow-Headers "Content-Type"
+    Header always set Access-Control-Max-Age "86400"
+</IfModule>

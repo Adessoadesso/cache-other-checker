@@ -1,0 +1,68 @@
+---
+import BaseLayout from './BaseLayout.astro';
+
+interface Props {
+  title: string;
+  parentTitle?: string;
+  parentHref?: string;
+  children?: { title: string; href: string }[];
+}
+
+const { title, parentTitle, parentHref, children = [] } = Astro.props;
+---
+
+<BaseLayout title={`${title} — Panoramic Ireland`} description={`${title} — content migration in progress.`}>
+  <section class="container page">
+    {parentTitle && parentHref && (
+      <a href={parentHref} class="back">&larr; {parentTitle}</a>
+    )}
+    <h1>{title}</h1>
+    <p class="notice">
+      This page is being migrated from the previous site. The URL is live and correct —
+      full content is on its way.
+    </p>
+
+    {children.length > 0 && (
+      <>
+        <h2>On this page</h2>
+        <ul class="child-list">
+          {children.map((c) => (
+            <li><a href={c.href}>{c.title}</a></li>
+          ))}
+        </ul>
+      </>
+    )}
+
+    <a href="/contact" class="btn btn-primary">Enquire about this</a>
+  </section>
+</BaseLayout>
+
+<style>
+  .page {
+    padding-block: var(--space-xl);
+    max-width: 44rem;
+  }
+
+  .back {
+    display: inline-block;
+    margin-bottom: var(--space-s);
+    color: var(--color-forest-700);
+    font-weight: 700;
+    text-decoration: none;
+  }
+
+  .notice {
+    background: var(--color-paper-dim);
+    border-left: 3px solid var(--color-gold-500);
+    padding: 0.85rem 1rem;
+    color: var(--color-ink-soft);
+  }
+
+  .child-list {
+    margin-bottom: var(--space-l);
+  }
+
+  .child-list li {
+    margin-bottom: 0.4rem;
+  }
+</style>

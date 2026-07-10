@@ -1,0 +1,99 @@
+---
+import '../styles/global.css';
+
+interface Props {
+  title: string;
+}
+
+const { title } = Astro.props;
+const adminEmail = Astro.locals.adminEmail;
+---
+
+<!doctype html>
+<html lang="en-IE">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>{title} — Admin</title>
+  </head>
+  <body>
+    <header class="admin-bar">
+      <a href="/admin" class="brand">Panoramic Ireland <span>Admin</span></a>
+      {adminEmail && <span class="who">{adminEmail}</span>}
+    </header>
+    <nav class="admin-nav">
+      <a href="/admin/bookings">Bookings</a>
+      <a href="/admin/availability">Availability</a>
+    </nav>
+    <main class="admin-main">
+      <slot />
+    </main>
+  </body>
+</html>
+
+<style>
+  :global(body) {
+    background: var(--color-paper-dim);
+  }
+
+  .admin-bar {
+    background: var(--color-forest-900);
+    color: var(--color-paper);
+    padding: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .brand {
+    color: var(--color-paper);
+    text-decoration: none;
+    font-family: var(--font-display);
+    font-size: 1.15rem;
+    font-weight: 600;
+  }
+
+  .brand span {
+    color: var(--color-gold-300);
+    font-style: italic;
+    font-weight: 400;
+  }
+
+  .who {
+    font-size: var(--step-small);
+    color: var(--color-paper-dim);
+  }
+
+  .admin-nav {
+    display: flex;
+    gap: 0;
+    background: var(--color-forest-700);
+  }
+
+  .admin-nav a {
+    flex: 1;
+    text-align: center;
+    padding: 0.85rem;
+    color: var(--color-paper);
+    text-decoration: none;
+    font-size: var(--step-small);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    border-bottom: 3px solid transparent;
+  }
+
+  .admin-nav a:hover {
+    border-bottom-color: var(--color-gold-500);
+  }
+
+  .admin-main {
+    max-width: 720px;
+    margin-inline: auto;
+    padding: 1rem;
+    padding-bottom: 4rem;
+  }
+</style>

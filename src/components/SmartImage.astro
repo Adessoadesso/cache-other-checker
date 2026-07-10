@@ -1,0 +1,67 @@
+---
+interface Props {
+  src: string;
+  alt: string;
+  class?: string;
+  loading?: 'eager' | 'lazy';
+  fetchpriority?: 'high' | 'low' | 'auto';
+}
+
+const { src, alt, class: className = '', loading = 'lazy', fetchpriority = 'auto' } = Astro.props;
+---
+
+<span class={`smart-img ${className}`}>
+  <img
+    src={src}
+    alt={alt}
+    loading={loading}
+    fetchpriority={fetchpriority}
+    onerror="this.parentElement.classList.add('smart-img--missing')"
+  />
+  <span class="smart-img__fallback" aria-hidden="true">Photo pending</span>
+</span>
+
+<style>
+  .smart-img {
+    position: relative;
+    display: block;
+    overflow: hidden;
+    background: repeating-linear-gradient(
+      45deg,
+      var(--color-paper-dim),
+      var(--color-paper-dim) 12px,
+      var(--color-paper) 12px,
+      var(--color-paper) 24px
+    );
+  }
+
+  .smart-img img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .smart-img__fallback {
+    display: none;
+    position: absolute;
+    inset: 0;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 1rem;
+    font-family: var(--font-body);
+    font-size: var(--step-small);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--color-forest-500);
+  }
+
+  .smart-img--missing img {
+    display: none;
+  }
+
+  .smart-img--missing .smart-img__fallback {
+    display: flex;
+  }
+</style>

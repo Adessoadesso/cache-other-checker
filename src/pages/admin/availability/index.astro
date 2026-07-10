@@ -1,0 +1,30 @@
+---
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import { env } from 'cloudflare:workers';
+
+export const prerender = false;
+
+const { results: tours } = await env.DB.prepare(
+  `SELECT t.*, (
+     SELECT COUNT(*) FROM availability_slots s
+     WHERE s.tour_id = t.id AND s.status = 'open' AND s.starts_at > datetime('now')
+   ) as open_count
+   FROM tours t
+   ORDER BY t.title`
+).all();
+---
+
+<AdminLayout title="Availability">
+  <h1>Availability</h1>
+
+  {tours.length === 0 && <p class="empty-state">No tours in D1 yet — add a row to the `tours` table first.</p>}
+
+  {tours.map((t: any) => (
+    <a class="admin-card-link" href={`/admin/availability/${t.id}`}>
+      <div class="admin-card">
+        <h2>{t.title}</h2>
+        <p>{t.region} · {t.open_count} open slot(s)</p>
+      </div>
+    </a>
+  ))}
+</AdminLayout>

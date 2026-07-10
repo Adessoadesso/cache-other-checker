@@ -1,0 +1,37 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { marketingPageCss } from '../lib/marketingPageStyles';
+
+interface Props {
+  title: string;
+  description: string;
+  html: string;
+  parentTitle?: string;
+  parentHref?: string;
+  children?: { title: string; href: string }[];
+}
+
+const { title, description, html, parentTitle, parentHref, children = [] } = Astro.props;
+---
+
+<BaseLayout title={`${title} — Panoramic Ireland`} description={description}>
+  {parentTitle && parentHref && (
+    <nav class="marketing-breadcrumb" aria-label="Breadcrumb">
+      <a href={parentHref}>&larr; {parentTitle}</a>
+    </nav>
+  )}
+  <article class="marketing-page" set:html={html} />
+
+  {children.length > 0 && (
+    <nav class="marketing-subnav" aria-label="On this page">
+      <h2>On this page</h2>
+      <ul>
+        {children.map((c) => (
+          <li><a href={c.href}>{c.title}</a></li>
+        ))}
+      </ul>
+    </nav>
+  )}
+</BaseLayout>
+
+<style is:global set:html={marketingPageCss} />

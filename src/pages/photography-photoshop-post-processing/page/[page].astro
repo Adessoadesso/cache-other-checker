@@ -1,0 +1,20 @@
+---
+export const prerender = true;
+
+import BlogHubPage from '../../../components/blog/BlogHubPage.astro';
+import { getBlogHubStaticPaths } from '../../../lib/blog-hub';
+
+export async function getStaticPaths() {
+  return getBlogHubStaticPaths('photography-photoshop-post-processing');
+}
+
+const page = Number(Astro.params.page);
+---
+
+<BlogHubPage
+  page={page}
+  categoryPrefix="photography-photoshop-post-processing"
+  title="Photography & Post-processing"
+  eyebrow="Journal"
+  description="Technique, workflow, and post-processing notes from the field."
+/>

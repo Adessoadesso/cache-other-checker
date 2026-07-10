@@ -1,0 +1,39 @@
+---
+export const prerender = true;
+
+import MarketingPage from '../../components/MarketingPage.astro';
+import PlaceholderLayout from '../../layouts/PlaceholderLayout.astro';
+import { workshopsMenu } from '../../data/workshops-menu';
+import { flattenNavTree } from '../../lib/nav-tree';
+import { getMarketingPage } from '../../lib/marketing-pages';
+
+export async function getStaticPaths() {
+  const entries = flattenNavTree(workshopsMenu, 'photography-workshops-ireland');
+  return entries.map((entry) => ({
+    params: { slug: entry.slug },
+    props: { entry },
+  }));
+}
+
+const { entry } = Astro.props;
+const legacyPath = `/${entry.fullPath}`;
+const page = getMarketingPage(legacyPath);
+---
+
+{page ? (
+  <MarketingPage
+    title={page.title}
+    description={page.description}
+    html={page.html}
+    parentTitle={entry.parent?.title ?? 'Photography Workshops'}
+    parentHref={entry.parent?.href ?? '/photography-workshops-ireland'}
+    children={entry.children}
+  />
+) : (
+  <PlaceholderLayout
+    title={entry.title}
+    parentTitle={entry.parent?.title ?? 'Photography Workshops'}
+    parentHref={entry.parent?.href ?? '/photography-workshops-ireland'}
+    children={entry.children}
+  />
+)}

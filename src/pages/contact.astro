@@ -1,0 +1,118 @@
+---
+export const prerender = true;
+
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { marketingPageCss } from '../lib/marketingPageStyles';
+import { getMarketingPage } from '../lib/marketing-pages';
+
+const intro = getMarketingPage('/contact');
+---
+
+<BaseLayout
+  title="Enquire — Panoramic Ireland"
+  description={intro?.description ?? 'Start a private photography tour enquiry with Panoramic Ireland.'}
+>
+  {intro && <article class="marketing-page contact-intro" set:html={intro.html} />}
+
+  <section class="container page">
+    <p class="eyebrow">Enquire</p>
+    <h1>Tell us about the trip</h1>
+    <p>Dates, group size, and the kind of light you're chasing — we'll come back with a route and price.</p>
+
+    <p class="confirmation" id="sent-confirmation" hidden>
+      Thanks — your enquiry is in. We'll reply by email shortly.
+    </p>
+
+    <form method="POST" action="https://api.panoramicireland.com/api/enquiry" class="enquiry-form">
+      <input type="hidden" name="sourcePage" value="/contact" />
+      <label>
+        Name
+        <input type="text" name="name" required autocomplete="name" />
+      </label>
+      <label>
+        Email
+        <input type="email" name="email" required autocomplete="email" />
+      </label>
+      <label>
+        Phone
+        <input type="tel" name="phone" autocomplete="tel" />
+      </label>
+      <label>
+        Preferred dates
+        <input type="text" name="dates" placeholder="e.g. 12–16 September 2026" />
+      </label>
+      <label>
+        Group size
+        <input type="number" name="guestCount" min="1" max="12" />
+      </label>
+      <label>
+        Message
+        <textarea name="message" rows="5" required></textarea>
+      </label>
+      <button type="submit" class="btn btn-primary">Send Enquiry</button>
+    </form>
+  </section>
+
+  <script is:inline>
+    // This is a static page (served from cPanel, no server-side rendering at
+    // request time), so the "?sent=1" query string the API redirects back to
+    // can only be read client-side. The form submission itself works with
+    // or without this running — it's a plain HTML POST — this script only
+    // toggles a courtesy confirmation message on return.
+    if (new URLSearchParams(window.location.search).get('sent') === '1') {
+      const el = document.getElementById('sent-confirmation');
+      if (el) el.hidden = false;
+    }
+  </script>
+</BaseLayout>
+
+<style is:global set:html={marketingPageCss} />
+
+<style>
+  .contact-intro .pi-section:last-child {
+    padding-bottom: 0;
+  }
+
+  .confirmation {
+    background: var(--color-paper-dim);
+    border-left: 3px solid var(--color-gold-500);
+    padding: 0.85rem 1rem;
+    margin-bottom: var(--space-m);
+  }
+
+  .page {
+    padding-block: var(--space-xl);
+    max-width: 40rem;
+  }
+
+  .enquiry-form {
+    display: grid;
+    gap: var(--space-m);
+    margin-top: var(--space-l);
+  }
+
+  label {
+    display: grid;
+    gap: 0.4rem;
+    font-weight: 700;
+    font-size: var(--step-small);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--color-forest-700);
+  }
+
+  input,
+  textarea {
+    font-family: var(--font-body);
+    font-size: 1rem;
+    padding: 0.75rem;
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius);
+    background: var(--color-paper);
+    color: var(--color-ink);
+  }
+
+  button {
+    justify-self: start;
+  }
+</style>

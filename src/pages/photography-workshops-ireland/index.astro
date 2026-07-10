@@ -1,0 +1,69 @@
+---
+export const prerender = true;
+
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { workshopsMenu } from '../../data/workshops-menu';
+---
+
+<BaseLayout
+  title="Photography Workshops — Panoramic Ireland"
+  description="Private photography workshops and tours across Ireland and Northern Ireland."
+>
+  <section class="container page">
+    <p class="eyebrow">Photo Workshops</p>
+    <h1>Photography Workshops</h1>
+    <p>Private, small-group tours by region — pick where you're headed.</p>
+
+    <ul class="tree">
+      {workshopsMenu.map((node) => (
+        <li>
+          <a href={`/${node.path}`}>{node.title}</a>
+          {node.children && node.children.length > 0 && (
+            <ul>
+              {node.children.map((child) => (
+                <li><a href={`/${child.path}`}>{child.title}</a></li>
+              ))}
+            </ul>
+          )}
+        </li>
+      ))}
+    </ul>
+  </section>
+</BaseLayout>
+
+<style>
+  .page {
+    padding-block: var(--space-xl);
+    max-width: 44rem;
+  }
+
+  .tree {
+    margin-top: var(--space-l);
+    list-style: none;
+    padding: 0;
+  }
+
+  .tree > li {
+    margin-bottom: 0.75rem;
+    font-weight: 700;
+  }
+
+  .tree a {
+    color: var(--color-forest-700);
+  }
+
+  .tree ul {
+    list-style: none;
+    padding-left: 1.25rem;
+    margin-top: 0.4rem;
+    font-weight: 400;
+  }
+
+  .tree ul li {
+    margin-bottom: 0.3rem;
+  }
+
+  .tree ul a {
+    color: var(--color-ink-soft);
+  }
+</style>

@@ -1,0 +1,207 @@
+---
+const nav = [
+  { href: '/', label: 'Home' },
+  { href: '/dublin', label: 'Dublin Photo Tours' },
+  { href: '/guide-to-ireland', label: 'Guide' },
+  { href: '/photography-workshops-ireland', label: 'Photo Workshops' },
+  { href: '/about', label: 'About' },
+  { href: '/blog', label: 'Blog' },
+  { href: '/contact', label: 'Contact' },
+];
+---
+
+<header class="site-header">
+  <div class="container bar">
+    <a href="/" class="wordmark">
+      <span class="wordmark__title">Panoramic <span>Ireland</span></span>
+      <span class="wordmark__tagline">Photography • Travel • Experiences</span>
+    </a>
+
+    <input type="checkbox" id="nav-toggle" class="nav-toggle-input" />
+    <label for="nav-toggle" class="nav-toggle-label" aria-label="Menu">
+      <span></span>
+      <span></span>
+      <span></span>
+    </label>
+
+    <nav class="primary-nav" aria-label="Primary">
+      <ul>
+        {nav.map((item) => (
+          <li><a href={item.href}>{item.label}</a></li>
+        ))}
+        <li class="nav-cta desktop-only">
+          <a href="/contact" class="btn btn-primary">Book a Tour</a>
+        </li>
+      </ul>
+      <a href="/contact" class="btn btn-primary book-btn mobile-only">Book a Tour</a>
+    </nav>
+  </div>
+</header>
+
+<style>
+  .site-header {
+    background: var(--color-forest-900);
+    color: var(--color-paper);
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    border-bottom: 1px solid rgba(247, 243, 233, 0.08);
+  }
+
+  .bar {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    padding-block: 0.7rem;
+    position: relative;
+  }
+
+  .wordmark {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    text-decoration: none;
+    line-height: 1.1;
+    flex-shrink: 0;
+  }
+
+  .wordmark__title {
+    font-family: var(--font-display);
+    font-size: 1.35rem;
+    font-weight: 600;
+    color: var(--color-paper);
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+  }
+
+  .wordmark__title > span {
+    color: var(--color-forest-300);
+    font-weight: 500;
+  }
+
+  .wordmark__tagline {
+    font-family: var(--font-body);
+    font-size: 0.56rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgba(247, 243, 233, 0.7);
+    white-space: nowrap;
+  }
+
+  .primary-nav {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+  }
+
+  .primary-nav ul {
+    list-style: none;
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: clamp(0.5rem, 1vw, 0.9rem);
+    margin: 0;
+    padding: 0;
+  }
+
+  .primary-nav a:not(.btn) {
+    color: var(--color-paper);
+    text-decoration: none;
+    font-size: 0.75rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  .primary-nav a:not(.btn):hover {
+    color: var(--color-gold-300);
+  }
+
+  .nav-cta {
+    flex-shrink: 0;
+    margin-left: 0.15rem;
+  }
+
+  .nav-cta .btn {
+    padding: 0.5rem 0.8rem;
+    font-size: 0.72rem;
+    white-space: nowrap;
+  }
+
+  .mobile-only {
+    display: none;
+  }
+
+  .nav-toggle-input {
+    display: none;
+  }
+
+  .nav-toggle-label {
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    gap: 5px;
+    width: 2rem;
+    height: 2rem;
+    cursor: pointer;
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+
+  .nav-toggle-label span {
+    display: block;
+    height: 2px;
+    background: var(--color-paper);
+    border-radius: 1px;
+  }
+
+  @media (max-width: 1180px) {
+    .desktop-only {
+      display: none;
+    }
+
+    .nav-toggle-label {
+      display: flex;
+      margin-left: auto;
+    }
+
+    .primary-nav {
+      display: none;
+    }
+
+    .nav-toggle-input:checked ~ .primary-nav {
+      display: block;
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: var(--color-forest-900);
+      border-top: 1px solid rgba(247, 243, 233, 0.12);
+      padding: var(--space-m);
+      z-index: 10;
+    }
+
+    .primary-nav ul {
+      flex-direction: column;
+      align-items: stretch;
+      gap: var(--space-s);
+    }
+
+    .primary-nav a:not(.btn) {
+      display: block;
+      padding: 0.5rem 0;
+      font-size: var(--step-small);
+    }
+
+    .mobile-only {
+      display: inline-flex;
+      width: 100%;
+      justify-content: center;
+      margin-top: var(--space-m);
+    }
+  }
+</style>

@@ -1,0 +1,18 @@
+---
+export const prerender = true;
+
+import MarketingPage from '../components/MarketingPage.astro';
+import PlaceholderLayout from '../layouts/PlaceholderLayout.astro';
+import RawHtmlPage from '../components/RawHtmlPage.astro';
+import { getMarketingPage } from '../lib/marketing-pages';
+
+const page = getMarketingPage('/about');
+---
+
+{page?.layout === 'raw' ? (
+  <RawHtmlPage title={page.title} description={page.description} html={page.html} css={page.css} />
+) : page ? (
+  <MarketingPage title={page.title} description={page.description} html={page.html} />
+) : (
+  <PlaceholderLayout title="About Darren McLoughlin" />
+)}

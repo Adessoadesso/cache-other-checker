@@ -1,0 +1,20 @@
+---
+export const prerender = true;
+
+import BlogHubPage from '../../../components/blog/BlogHubPage.astro';
+import { getBlogHubStaticPaths } from '../../../lib/blog-hub';
+
+export async function getStaticPaths() {
+  return getBlogHubStaticPaths('blog-ireland-guide');
+}
+
+const page = Number(Astro.params.page);
+---
+
+<BlogHubPage
+  page={page}
+  categoryPrefix="blog-ireland-guide"
+  title="Guide to Ireland Blog"
+  eyebrow="Journal"
+  description="Travel guides, history, and practical notes on photographing Ireland."
+/>

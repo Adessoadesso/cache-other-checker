@@ -1,0 +1,83 @@
+---
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import { env } from 'cloudflare:workers';
+
+export const prerender = false;
+
+const statusFilter = Astro.url.searchParams.get('status');
+const validStatuses = ['requested', 'confirmed', 'paid', 'declined', 'cancelled'];
+const activeStatus = validStatuses.includes(statusFilter ?? '') ? statusFilter : null;
+
+const query = activeStatus
+  ? env.DB.prepare(
+      `SELECT b.*, t.title as tour_title, s.starts_at
+       FROM bookings b
+       JOIN tours t ON t.id = b.tour_id
+       JOIN availability_slots s ON s.id = b.slot_id
+       WHERE b.status = ?
+       ORDER BY s.starts_at ASC`
+    ).bind(activeStatus)
+  : env.DB.prepare(
+      `SELECT b.*, t.title as tour_title, s.starts_at
+       FROM bookings b
+       JOIN tours t ON t.id = b.tour_id
+       JOIN availability_slots s ON s.id = b.slot_id
+       ORDER BY b.created_at DESC
+       LIMIT 50`
+    );
+
+const { results: bookings } = await query.all();
+---
+
+<AdminLayout title="Bookings">
+  <h1>Bookings</h1>
+
+  <div class="filters">
+    <a href="/admin/bookings" class={!activeStatus ? 'active' : ''}>All</a>
+    <a href="/admin/bookings?status=requested" class={activeStatus === 'requested' ? 'active' : ''}>Requested</a>
+    <a href="/admin/bookings?status=confirmed" class={activeStatus === 'confirmed' ? 'active' : ''}>Confirmed</a>
+    <a href="/admin/bookings?status=paid" class={activeStatus === 'paid' ? 'active' : ''}>Paid</a>
+  </div>
+
+  {bookings.length === 0 && <p class="empty-state">No bookings here.</p>}
+
+  {bookings.map((b: any) => (
+    <a class="admin-card-link" href={`/admin/bookings/${b.id}`}>
+      <div class="admin-card">
+        <span class={`status-badge status-${b.status}`}>{b.status}</span>
+        <h2>{b.tour_title}</h2>
+        <p>
+          {b.guest_name} · {b.guest_count} guest(s) ·{' '}
+          {new Date(b.starts_at).toLocaleString('en-IE', { dateStyle: 'medium', timeStyle: 'short' })}
+        </p>
+      </div>
+    </a>
+  ))}
+</AdminLayout>
+
+<style>
+  .filters {
+    display: flex;
+    gap: 0.4rem;
+    overflow-x: auto;
+    margin-bottom: var(--space-m);
+    padding-bottom: 0.25rem;
+  }
+
+  .filters a {
+    flex-shrink: 0;
+    padding: 0.5rem 0.9rem;
+    border: 1px solid var(--color-line);
+    border-radius: 999px;
+    text-decoration: none;
+    color: var(--color-ink-soft);
+    font-size: var(--step-small);
+    font-weight: 700;
+  }
+
+  .filters a.active {
+    background: var(--color-forest-700);
+    color: var(--color-paper);
+    border-color: var(--color-forest-700);
+  }
+</style>

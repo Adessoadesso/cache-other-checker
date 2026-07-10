@@ -1,0 +1,73 @@
+---
+import { getCollection, render } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+
+export const prerender = true;
+
+export async function getStaticPaths() {
+  const tours = await getCollection('tours');
+  return tours.map((tour) => ({
+    params: { slug: tour.data.slug },
+    props: { tour },
+  }));
+}
+
+const { tour } = Astro.props;
+const { Content } = await render(tour);
+---
+
+<BaseLayout title={`${tour.data.title} — Panoramic Ireland`} description={tour.data.summary}>
+  <article class="container tour-detail">
+    <p class="eyebrow">{tour.data.region}</p>
+    <h1>{tour.data.title}</h1>
+    <p class="summary">{tour.data.summary}</p>
+
+    <ul class="facts">
+      <li>{tour.data.durationHours} hours</li>
+      <li>Up to {tour.data.maxGuests} guests</li>
+      <li>from &euro;{(tour.data.basePriceEur / 100).toFixed(0)}</li>
+    </ul>
+
+    {tour.data.highlights.length > 0 && (
+      <ul class="highlights">
+        {tour.data.highlights.map((h: string) => <li>{h}</li>)}
+      </ul>
+    )}
+
+    <div class="prose">
+      <Content />
+    </div>
+
+    <a class="btn btn-primary" href="/contact">Enquire About This Tour</a>
+  </article>
+</BaseLayout>
+
+<style>
+  .tour-detail {
+    padding-block: var(--space-xl);
+    max-width: 48rem;
+  }
+
+  .summary {
+    font-size: var(--step-0);
+    color: var(--color-ink-soft);
+  }
+
+  .facts {
+    display: flex;
+    gap: var(--space-m);
+    list-style: none;
+    padding: 0;
+    margin: var(--space-m) 0;
+    font-weight: 700;
+    color: var(--color-forest-700);
+  }
+
+  .highlights {
+    margin-bottom: var(--space-l);
+  }
+
+  .prose {
+    margin-bottom: var(--space-l);
+  }
+</style>

@@ -1,0 +1,114 @@
+---
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import { env } from 'cloudflare:workers';
+
+export const prerender = false;
+
+const { id } = Astro.params;
+
+const booking = await env.DB.prepare(
+  `SELECT b.*, t.title as tour_title, t.region, s.starts_at, s.ends_at
+   FROM bookings b
+   JOIN tours t ON t.id = b.tour_id
+   JOIN availability_slots s ON s.id = b.slot_id
+   WHERE b.id = ?`
+)
+  .bind(id)
+  .first<any>();
+
+if (!booking) {
+  return new Response('Booking not found', { status: 404 });
+}
+---
+
+<AdminLayout title="Booking">
+  <a href="/admin/bookings" class="back">&larr; Bookings</a>
+  <h1>{booking.tour_title}</h1>
+  <span class={`status-badge status-${booking.status}`}>{booking.status}</span>
+
+  <div class="admin-card details">
+    <dl>
+      <dt>Guest</dt>
+      <dd>{booking.guest_name}</dd>
+      <dt>Email</dt>
+      <dd><a href={`mailto:${booking.guest_email}`}>{booking.guest_email}</a></dd>
+      {booking.guest_phone && (
+        <>
+          <dt>Phone</dt>
+          <dd><a href={`tel:${booking.guest_phone}`}>{booking.guest_phone}</a></dd>
+        </>
+      )}
+      <dt>Guests</dt>
+      <dd>{booking.guest_count}</dd>
+      <dt>When</dt>
+      <dd>
+        {new Date(booking.starts_at).toLocaleString('en-IE', { dateStyle: 'full', timeStyle: 'short' })}
+        &ndash;
+        {new Date(booking.ends_at).toLocaleString('en-IE', { timeStyle: 'short' })}
+      </dd>
+      <dt>Amount</dt>
+      <dd>&euro;{(booking.amount_eur / 100).toFixed(2)}</dd>
+      {booking.notes && (
+        <>
+          <dt>Notes</dt>
+          <dd>{booking.notes}</dd>
+        </>
+      )}
+    </dl>
+  </div>
+
+  {booking.status === 'requested' && (
+    <>
+      <form method="POST" action={`/admin/api/bookings/${booking.id}/confirm`}>
+        <button type="submit" class="btn-block btn-confirm">Confirm booking &amp; add to calendar</button>
+      </form>
+      <form method="POST" action={`/admin/api/bookings/${booking.id}/decline`}>
+        <button type="submit" class="btn-block btn-decline">Decline &amp; release slot</button>
+      </form>
+    </>
+  )}
+
+  {booking.status === 'confirmed' && (
+    <form method="POST" action={`/admin/api/bookings/${booking.id}/mark-paid`}>
+      <button type="submit" class="btn-block btn-gold">Mark as paid</button>
+    </form>
+  )}
+
+  {booking.status === 'paid' && <p>Paid in full — nothing further to do.</p>}
+  {(booking.status === 'declined' || booking.status === 'cancelled') && <p>This booking is closed.</p>}
+</AdminLayout>
+
+<style>
+  .back {
+    display: inline-block;
+    margin-bottom: 0.75rem;
+    color: var(--color-forest-700);
+    font-weight: 700;
+    text-decoration: none;
+  }
+
+  .details {
+    margin-top: var(--space-s);
+  }
+
+  dl {
+    display: grid;
+    grid-template-columns: 6rem 1fr;
+    gap: 0.4rem 0.75rem;
+    margin: 0;
+  }
+
+  dt {
+    font-weight: 700;
+    color: var(--color-ink-soft);
+    font-size: var(--step-small);
+  }
+
+  dd {
+    margin: 0;
+  }
+
+  form {
+    margin-top: 0.75rem;
+  }
+</style>

@@ -1,0 +1,14 @@
+---
+export const prerender = true;
+
+import BlogPost from '../../components/BlogPost.astro';
+import { getBlogArticlePaths } from '../../lib/blog';
+
+export async function getStaticPaths() {
+  return getBlogArticlePaths('blog-ireland-guide');
+}
+
+const { post } = Astro.props;
+---
+
+<BlogPost post={post} />

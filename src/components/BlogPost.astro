@@ -1,0 +1,279 @@
+---
+import { render, type CollectionEntry } from 'astro:content';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import BlogSidebar from './blog/BlogSidebar.astro';
+import { categoryStats, postCategoryLink } from '../lib/blog-hub';
+import { allPublishedPosts } from '../lib/blog';
+
+interface Props {
+  post: CollectionEntry<'blog'>;
+}
+
+const { post } = Astro.props;
+const { Content } = await render(post);
+const { title, kicker, standfirst, description, pubDate, updatedDate, heroImage, heroImageAlt, heroImageCaption, gallery, author, tags } =
+  post.data;
+const categories = categoryStats(await allPublishedPosts());
+const category = postCategoryLink(post);
+---
+
+<BaseLayout title={`${title} — Panoramic Ireland`} description={description} image={heroImage}>
+  <div class="container blog-article">
+    <div class="blog-article__layout">
+      <article class="post">
+        {heroImage && (
+          <figure class="hero-image">
+            <img src={heroImage} alt={heroImageAlt ?? ''} loading="eager" fetchpriority="high" />
+            {heroImageCaption && <figcaption>{heroImageCaption}</figcaption>}
+          </figure>
+        )}
+
+        <header class="post-head">
+          <p class="eyebrow">{kicker ?? category?.title ?? 'Journal'}</p>
+          <h1>{title}</h1>
+          {standfirst && <p class="standfirst">{standfirst}</p>}
+          <div class="byline">
+            <span class="author">{author}</span>
+            <time datetime={pubDate.toISOString()}>
+              {pubDate.toLocaleDateString('en-IE', { year: 'numeric', month: 'long', day: 'numeric' })}
+            </time>
+            {updatedDate && (
+              <span class="updated">
+                Updated {updatedDate.toLocaleDateString('en-IE', { year: 'numeric', month: 'long', day: 'numeric' })}
+              </span>
+            )}
+          </div>
+        </header>
+
+        <div class="prose">
+          <Content />
+        </div>
+
+        {gallery.length > 0 && (
+          <div class="gallery">
+            {gallery.map((img) => (
+              <figure>
+                <img src={img.src} alt={img.alt} loading="lazy" />
+                {img.caption && <figcaption>{img.caption}</figcaption>}
+              </figure>
+            ))}
+          </div>
+        )}
+
+        {tags.length > 0 && (
+          <footer class="post-tags">
+            <span class="post-tags__label">Tags</span>
+            <ul>
+              {tags.map((tag) => (
+                <li>
+                  <a href={`/new-search-1-all?q=${encodeURIComponent(tag)}`}>{tag}</a>
+                </li>
+              ))}
+            </ul>
+          </footer>
+        )}
+      </article>
+
+      <BlogSidebar categories={categories} />
+    </div>
+  </div>
+</BaseLayout>
+
+<style>
+  .blog-article {
+    padding-block: var(--space-s) var(--space-xl);
+  }
+
+  .blog-article__layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(240px, 300px);
+    gap: var(--space-l);
+    align-items: start;
+  }
+
+  .hero-image {
+    width: 100%;
+    margin-bottom: var(--space-m);
+  }
+
+  .hero-image img {
+    width: 100%;
+    max-height: 60vh;
+    object-fit: cover;
+    display: block;
+    border-radius: var(--radius);
+  }
+
+  .hero-image figcaption {
+    margin-top: 0.45rem;
+    font-family: var(--font-body);
+    font-size: var(--step-small);
+    color: var(--color-ink-soft);
+  }
+
+  .post-head {
+    padding-top: var(--space-s);
+    margin-bottom: var(--space-m);
+  }
+
+  .standfirst {
+    font-family: var(--font-display);
+    font-size: var(--step-0);
+    color: var(--color-ink-soft);
+    max-width: 52ch;
+  }
+
+  .byline {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    font-size: var(--step-small);
+    color: var(--color-ink-soft);
+    margin-bottom: var(--space-m);
+  }
+
+  .byline .author {
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--color-forest-700);
+  }
+
+  .updated {
+    color: var(--color-ink-soft);
+  }
+
+  @media (min-width: 560px) {
+    .byline {
+      flex-direction: row;
+      align-items: baseline;
+      gap: var(--space-s);
+    }
+
+    .byline > *:not(:first-child)::before {
+      content: '·';
+      margin-right: var(--space-s);
+      color: var(--color-gold-500);
+    }
+  }
+
+  .prose {
+    padding-bottom: var(--space-l);
+    font-family: var(--font-serif-body);
+    font-size: 1.05rem;
+    line-height: 1.75;
+  }
+
+  .prose :global(h2) {
+    font-family: var(--font-display);
+    font-size: var(--step-0);
+    margin-top: var(--space-l);
+    margin-bottom: var(--space-s);
+  }
+
+  .prose :global(h3),
+  .prose :global(h4) {
+    font-family: var(--font-body);
+    font-size: 1.05rem;
+    font-weight: 600;
+    margin-top: var(--space-m);
+    margin-bottom: var(--space-xs);
+  }
+
+  .prose :global(p) {
+    max-width: none;
+  }
+
+  .prose :global(img) {
+    width: 100%;
+    max-width: 36rem;
+    height: auto;
+    display: block;
+    margin: var(--space-m) auto;
+    border-radius: var(--radius);
+  }
+
+  .prose :global(figure) {
+    margin: var(--space-m) 0;
+  }
+
+  .prose :global(ol),
+  .prose :global(ul) {
+    padding-left: 1.25rem;
+    margin: var(--space-m) 0;
+  }
+
+  .prose :global(li) {
+    margin-bottom: var(--space-s);
+  }
+
+  .prose :global(li h2),
+  .prose :global(li h3) {
+    font-size: 1.05rem;
+    margin: 0;
+    font-family: var(--font-body);
+    font-weight: 600;
+  }
+
+  .gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--space-m);
+    padding-bottom: var(--space-l);
+  }
+
+  .gallery img {
+    width: 100%;
+    height: auto;
+    display: block;
+    border-radius: var(--radius);
+  }
+
+  .gallery figcaption {
+    font-size: var(--step-small);
+    color: var(--color-ink-soft);
+    margin-top: 0.4rem;
+  }
+
+  .post-tags {
+    border-top: 1px solid var(--color-line);
+    padding-top: var(--space-m);
+    margin-top: var(--space-m);
+    font-family: var(--font-body);
+    font-size: var(--step-small);
+  }
+
+  .post-tags__label {
+    display: block;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--color-forest-700);
+    margin-bottom: 0.5rem;
+  }
+
+  .post-tags ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 0.75rem;
+  }
+
+  .post-tags a {
+    color: var(--color-forest-700);
+    text-decoration: none;
+  }
+
+  .post-tags a:hover {
+    color: var(--color-gold-600);
+    text-decoration: underline;
+  }
+
+  @media (max-width: 960px) {
+    .blog-article__layout {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

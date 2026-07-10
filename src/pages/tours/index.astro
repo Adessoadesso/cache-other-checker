@@ -1,0 +1,77 @@
+---
+export const prerender = true;
+
+import { getCollection } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+
+const tours = (await getCollection('tours')).filter((t) => !t.data.draft);
+---
+
+<BaseLayout
+  title="Photography Tours — Panoramic Ireland"
+  description="Browse private photography tours across Connemara, the Causeway Coast, Dublin, and beyond."
+>
+  <section class="container page-header">
+    <p class="eyebrow">Tours</p>
+    <h1>Choose your ground</h1>
+    <p>Every tour below is a starting point — routes flex around light, tide, and weather on the day.</p>
+  </section>
+
+  <section class="container tour-grid">
+    {tours.map((tour) => (
+      <a class="tour-card" href={`/tours/${tour.data.slug}`}>
+        <h2>{tour.data.title}</h2>
+        <p class="region">{tour.data.region}</p>
+        <p>{tour.data.summary}</p>
+        <p class="meta">{tour.data.durationHours}h · from &euro;{(tour.data.basePriceEur / 100).toFixed(0)}</p>
+      </a>
+    ))}
+  </section>
+</BaseLayout>
+
+<style>
+  .page-header {
+    padding-block: var(--space-xl) var(--space-l);
+    max-width: 44rem;
+  }
+
+  .tour-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-m);
+    padding-bottom: var(--space-xl);
+  }
+
+  .tour-card {
+    display: block;
+    border: 1px solid var(--color-line);
+    padding: var(--space-m);
+    text-decoration: none;
+    color: var(--color-ink);
+    transition: border-color var(--transition);
+  }
+
+  .tour-card:hover {
+    border-color: var(--color-gold-500);
+  }
+
+  .region {
+    color: var(--color-gold-600);
+    font-weight: 700;
+    font-size: var(--step-small);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .meta {
+    color: var(--color-ink-soft);
+    font-size: var(--step-small);
+    margin-bottom: 0;
+  }
+
+  @media (max-width: 780px) {
+    .tour-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

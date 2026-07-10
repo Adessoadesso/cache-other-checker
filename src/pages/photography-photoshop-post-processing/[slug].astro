@@ -1,0 +1,14 @@
+---
+export const prerender = true;
+
+import BlogPost from '../../components/BlogPost.astro';
+import { getBlogArticlePaths } from '../../lib/blog';
+
+export async function getStaticPaths() {
+  return getBlogArticlePaths('photography-photoshop-post-processing');
+}
+
+const { post } = Astro.props;
+---
+
+<BlogPost post={post} />

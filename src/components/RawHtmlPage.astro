@@ -1,0 +1,59 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+interface Props {
+  title: string;
+  description: string;
+  html: string;
+  css?: string;
+}
+
+const { title, description, html, css = '' } = Astro.props;
+---
+
+<BaseLayout title={`${title} — Panoramic Ireland`} description={description}>
+  <article class="raw-page" set:html={html} />
+</BaseLayout>
+
+{css && <style is:global set:html={css} />}
+
+<style is:global>
+  /* Hand-authored pages (e.g. /about) ship their own layout CSS — avoid marketing-page overrides. */
+  .raw-page {
+    display: block;
+    padding-top: var(--space-s);
+    padding-bottom: var(--space-xl);
+  }
+
+  /*
+   * Site-wide `p { max-width: 66ch }` leaves centred copy in a left-flush column.
+   * Restore centred blocks on raw HTML pages without touching body copy in two-column sections.
+   */
+  .raw-page .intro-text p,
+  .raw-page .hero-subtitle,
+  .raw-page .cta-section p,
+  .raw-page .thank-you-section h3,
+  .raw-page .thank-you-section p,
+  .raw-page .thank-you-closing {
+    margin-inline: auto !important;
+    text-align: center;
+  }
+
+  .raw-page .intro-text p,
+  .raw-page .hero-subtitle,
+  .raw-page .cta-section p {
+    max-width: none;
+  }
+
+  .raw-page .thank-you-section {
+    width: 100%;
+    box-sizing: border-box;
+    text-align: center;
+  }
+
+  .raw-page .thank-you-section h3,
+  .raw-page .thank-you-section p,
+  .raw-page .thank-you-closing {
+    max-width: 42rem;
+  }
+</style>

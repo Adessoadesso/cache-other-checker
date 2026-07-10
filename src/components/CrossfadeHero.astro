@@ -1,0 +1,134 @@
+---
+interface Slide {
+  src: string;
+  alt: string;
+}
+
+interface Props {
+  slides: Slide[];
+  eyebrow: string;
+  headline: string;
+  subhead: string;
+  ctaLabel?: string;
+  ctaHref?: string;
+}
+
+const { slides, eyebrow, headline, subhead, ctaLabel = 'View Tours', ctaHref = '/tours' } = Astro.props;
+const duration = slides.length * 6; // seconds per full loop
+---
+
+<section class="hero" style={`--slide-count:${slides.length}; --cycle:${duration}s;`}>
+  <div class="hero-media" role="img" aria-label={slides[0]?.alt ?? ''}>
+    {slides.map((slide, i) => (
+      <img
+        src={slide.src}
+        alt=""
+        class="hero-slide"
+        style={`--i:${i};`}
+        loading={i === 0 ? 'eager' : 'lazy'}
+        fetchpriority={i === 0 ? 'high' : 'low'}
+        decoding={i === 0 ? 'sync' : 'async'}
+        onerror="this.style.visibility='hidden'"
+      />
+    ))}
+    <div class="hero-scrim" aria-hidden="true"></div>
+  </div>
+
+  <div class="container hero-copy">
+    <p class="eyebrow">{eyebrow}</p>
+    <h1>{headline}</h1>
+    <p class="subhead">{subhead}</p>
+    <a href={ctaHref} class="btn btn-outline">{ctaLabel}</a>
+  </div>
+</section>
+
+<style>
+  .hero {
+    position: relative;
+    min-height: min(88vh, 900px);
+    display: flex;
+    align-items: flex-end;
+    overflow: hidden;
+    color: var(--color-paper);
+  }
+
+  .hero-media {
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      45deg,
+      var(--color-forest-700),
+      var(--color-forest-700) 16px,
+      var(--color-forest-900) 16px,
+      var(--color-forest-900) 32px
+    );
+  }
+
+  .hero-slide {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0;
+    animation-name: crossfade;
+    animation-duration: var(--cycle);
+    animation-timing-function: ease-in-out;
+    animation-iteration-count: infinite;
+    animation-delay: calc((var(--cycle) / var(--slide-count)) * var(--i) * -1);
+  }
+
+  /* First slide paints immediately for LCP; animation only kicks in after mount */
+  .hero-slide:first-child {
+    opacity: 1;
+  }
+
+  @keyframes crossfade {
+    0%, 6% { opacity: 1; }
+    28%, 100% { opacity: 0; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hero-slide {
+      animation: none;
+      opacity: 0;
+    }
+    .hero-slide:first-child {
+      opacity: 1;
+    }
+  }
+
+  .hero-scrim {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      180deg,
+      rgba(15, 36, 24, 0.15) 0%,
+      rgba(15, 36, 24, 0.35) 55%,
+      rgba(15, 36, 24, 0.88) 100%
+    );
+  }
+
+  .hero-copy {
+    position: relative;
+    z-index: 1;
+    padding-bottom: var(--space-xl);
+    max-width: 46rem;
+  }
+
+  .hero-copy h1 {
+    color: var(--color-paper);
+    margin-block: 0.5rem 1rem;
+  }
+
+  .hero-copy .eyebrow {
+    color: var(--color-gold-300);
+  }
+
+  .subhead {
+    font-size: var(--step-0);
+    color: var(--color-paper-dim);
+    max-width: 42ch;
+    margin-bottom: var(--space-m);
+  }
+</style>

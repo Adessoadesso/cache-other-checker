@@ -1,0 +1,43 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import { env } from 'cloudflare:workers';
+
+export const prerender = false;
+
+const requested = await env.DB.prepare(
+  "SELECT COUNT(*) as n FROM bookings WHERE status = 'requested'"
+).first<{ n: number }>();
+
+const confirmed = await env.DB.prepare(
+  "SELECT COUNT(*) as n FROM bookings WHERE status = 'confirmed'"
+).first<{ n: number }>();
+
+const upcomingSlots = await env.DB.prepare(
+  "SELECT COUNT(*) as n FROM availability_slots WHERE status = 'open' AND starts_at > datetime('now')"
+).first<{ n: number }>();
+---
+
+<AdminLayout title="Dashboard">
+  <h1>Dashboard</h1>
+
+  <a class="admin-card-link" href="/admin/bookings?status=requested">
+    <div class="admin-card">
+      <h2>{requested?.n ?? 0} awaiting confirmation</h2>
+      <p>New booking requests that need a Confirm or Decline.</p>
+    </div>
+  </a>
+
+  <a class="admin-card-link" href="/admin/bookings?status=confirmed">
+    <div class="admin-card">
+      <h2>{confirmed?.n ?? 0} confirmed, awaiting payment</h2>
+      <p>Confirmed on the calendar — mark paid once the payment link is settled.</p>
+    </div>
+  </a>
+
+  <a class="admin-card-link" href="/admin/availability">
+    <div class="admin-card">
+      <h2>{upcomingSlots?.n ?? 0} open slots</h2>
+      <p>Manage availability across all tours.</p>
+    </div>
+  </a>
+</AdminLayout>
