@@ -1,0 +1,282 @@
+---
+export const prerender = true;
+
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { SITE_AUTHOR } from '../lib/authors';
+import { blogPublishDate, postsByAuthor, postUrl } from '../lib/blog';
+import { formatBlogDate } from '../lib/blog-hub';
+
+/** Newest publish date first; any new non-draft blog post by this author appears on the next build. */
+const posts = await postsByAuthor(SITE_AUTHOR.name);
+---
+
+<BaseLayout
+  title="Articles by Darren — Panoramic Ireland"
+  description="Panoramic Ireland create photography tours and workshops throughout Ireland for everyone"
+>
+  <div class="container author-page">
+    <header class="author-page__header">
+      <div class="author-page__intro">
+        <p class="eyebrow">Author</p>
+        <h1>{SITE_AUTHOR.name}</h1>
+        <p class="author-page__bio">{SITE_AUTHOR.bio}</p>
+        <p class="author-page__contributions">
+          Contributor to: {SITE_AUTHOR.contributions}
+        </p>
+        <p class="author-page__note">{SITE_AUTHOR.note}</p>
+        <dl class="author-page__meta">
+          <div>
+            <dt>Address</dt>
+            <dd>{SITE_AUTHOR.address}</dd>
+          </div>
+          <div>
+            <dt>Website</dt>
+            <dd>
+              <a href={SITE_AUTHOR.website} rel="noopener noreferrer">{SITE_AUTHOR.website.replace(/^https?:\/\//, '')}</a>
+            </dd>
+          </div>
+        </dl>
+      </div>
+
+      <figure class="author-page__photo">
+        <img src={SITE_AUTHOR.image} alt={SITE_AUTHOR.imageAlt} width="133" height="200" loading="eager" />
+      </figure>
+    </header>
+
+    <section class="author-page__contact" aria-labelledby="author-contact-heading">
+      <h2 id="author-contact-heading">Contact Form</h2>
+      <p class="author-page__contact-lede">Send an Email</p>
+
+      <p class="author-page__confirmation" id="author-sent-confirmation" hidden tabindex="-1">
+        Thanks — your message is in. We'll reply by email shortly.
+      </p>
+
+      <form
+        id="author-contact-form"
+        method="POST"
+        action="/enquiry.php"
+        class="author-page__form"
+      >
+        <input type="hidden" name="sourcePage" value="/darren-articles" />
+        <input type="hidden" name="formStarted" id="author-form-started" value="" />
+        <label class="author-page__hp" aria-hidden="true">
+          Website
+          <input type="text" name="website" tabindex="-1" autocomplete="off" />
+        </label>
+        <label>
+          Name
+          <input type="text" name="name" required autocomplete="name" maxlength="200" />
+        </label>
+        <label>
+          Email
+          <input type="email" name="email" required autocomplete="email" maxlength="254" />
+        </label>
+        <label>
+          Subject
+          <input type="text" name="subject" required maxlength="200" />
+        </label>
+        <label>
+          Message
+          <textarea name="messageBody" rows="5" required maxlength="10000"></textarea>
+        </label>
+        <input type="hidden" name="message" id="author-message-combined" value="" />
+        <button type="submit" class="btn btn-primary">Send Email</button>
+      </form>
+    </section>
+
+    <section class="author-page__articles" aria-labelledby="author-articles-heading">
+      <h2 id="author-articles-heading">Articles</h2>
+      <p class="author-page__count">{posts.length} articles</p>
+      <ul class="author-page__list">
+        {posts.map((post) => {
+          const published = blogPublishDate(post);
+          return (
+            <li>
+              <time datetime={published.toISOString()}>{formatBlogDate(published)}</time>
+              <a href={postUrl(post)}>{post.data.title}</a>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  </div>
+</BaseLayout>
+
+<script src="/author-contact.js" defer></script>
+
+<style>
+  .author-page {
+    padding-block: var(--space-l) var(--space-xl);
+    max-width: 52rem;
+  }
+
+  .author-page__header {
+    display: grid;
+    gap: var(--space-m);
+    margin-bottom: var(--space-l);
+    padding-bottom: var(--space-l);
+    border-bottom: 1px solid color-mix(in srgb, var(--color-ink) 12%, transparent);
+  }
+
+  @media (min-width: 720px) {
+    .author-page__header {
+      grid-template-columns: 1fr auto;
+      align-items: start;
+      gap: var(--space-l);
+    }
+  }
+
+  .author-page__header h1 {
+    font-family: var(--font-display);
+    font-size: clamp(2rem, 1.5rem + 2vw, 3rem);
+    font-weight: 500;
+    line-height: 1.15;
+    margin: 0.35rem 0 var(--space-s);
+  }
+
+  .author-page__bio,
+  .author-page__contributions,
+  .author-page__note {
+    color: var(--color-ink-soft);
+    max-width: 46ch;
+    margin: 0 0 0.75rem;
+  }
+
+  .author-page__note {
+    font-style: italic;
+  }
+
+  .author-page__meta {
+    display: grid;
+    gap: 0.65rem;
+    margin: var(--space-s) 0 0;
+  }
+
+  .author-page__meta div {
+    display: grid;
+    gap: 0.15rem;
+  }
+
+  .author-page__meta dt {
+    font-size: var(--step-small);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--color-ink-soft);
+  }
+
+  .author-page__meta dd {
+    margin: 0;
+  }
+
+  .author-page__photo {
+    margin: 0;
+  }
+
+  .author-page__photo img {
+    display: block;
+    width: 133px;
+    height: auto;
+    border-radius: var(--radius);
+  }
+
+  .author-page__contact {
+    margin-bottom: var(--space-l);
+    padding-bottom: var(--space-l);
+    border-bottom: 1px solid color-mix(in srgb, var(--color-ink) 12%, transparent);
+    max-width: 28rem;
+  }
+
+  .author-page__contact h2,
+  .author-page__articles h2 {
+    font-family: var(--font-display);
+    font-size: var(--step-2);
+    font-weight: 500;
+    margin: 0 0 0.35rem;
+  }
+
+  .author-page__contact-lede,
+  .author-page__count {
+    color: var(--color-ink-soft);
+    margin: 0 0 var(--space-s);
+  }
+
+  .author-page__confirmation {
+    background: var(--color-paper-dim);
+    border-left: 3px solid var(--color-gold-500);
+    padding: 0.85rem 1rem;
+    margin-bottom: var(--space-m);
+  }
+
+  .author-page__form {
+    display: grid;
+    gap: var(--space-m);
+  }
+
+  .author-page__hp {
+    position: absolute;
+    left: -10000px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+  }
+
+  .author-page__form label {
+    display: grid;
+    gap: 0.4rem;
+    font-weight: 700;
+    font-size: var(--step-small);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .author-page__form input,
+  .author-page__form textarea {
+    font: inherit;
+    text-transform: none;
+    letter-spacing: normal;
+    font-weight: 400;
+    padding: 0.65rem 0.75rem;
+    border: 1px solid color-mix(in srgb, var(--color-ink) 18%, transparent);
+    border-radius: var(--radius);
+    background: var(--color-paper);
+    color: var(--color-ink);
+  }
+
+  .author-page__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.55rem;
+  }
+
+  .author-page__list li {
+    display: grid;
+    grid-template-columns: 9.5rem 1fr;
+    gap: 0.75rem;
+    align-items: baseline;
+  }
+
+  .author-page__list time {
+    color: var(--color-ink-soft);
+    font-size: var(--step-small);
+    white-space: nowrap;
+  }
+
+  .author-page__list a {
+    color: var(--color-ink);
+    text-decoration: underline;
+    text-underline-offset: 0.15em;
+  }
+
+  .author-page__list a:hover {
+    color: var(--color-forest-700);
+  }
+
+  @media (max-width: 520px) {
+    .author-page__list li {
+      grid-template-columns: 1fr;
+      gap: 0.15rem;
+    }
+  }
+</style>
