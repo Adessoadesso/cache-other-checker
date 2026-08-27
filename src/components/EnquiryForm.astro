@@ -1,0 +1,121 @@
+---
+interface Props {
+  sourcePage: string;
+  formId?: string;
+  confirmationId?: string;
+}
+
+const {
+  sourcePage,
+  formId = 'enquiry-form',
+  confirmationId = 'sent-confirmation',
+} = Astro.props;
+
+const startedFieldId = `${formId}-started`;
+---
+
+<p class="enquiry-form__confirmation" id={confirmationId} hidden tabindex="-1">
+  Thanks — your enquiry is in. We'll reply by email shortly.
+</p>
+
+<form
+  id={formId}
+  method="POST"
+  action="/enquiry.php"
+  class="enquiry-form"
+  data-confirmation-id={confirmationId}
+  data-started-id={startedFieldId}
+>
+  <input type="hidden" name="sourcePage" value={sourcePage} />
+  <input type="hidden" name="formStarted" id={startedFieldId} value="" />
+  <label class="enquiry-form__hp" aria-hidden="true">
+    Website
+    <input type="text" name="website" tabindex="-1" autocomplete="off" />
+  </label>
+  <label>
+    Name
+    <input type="text" name="name" required autocomplete="name" maxlength="200" />
+  </label>
+  <label>
+    Email
+    <input type="email" name="email" required autocomplete="email" maxlength="254" />
+  </label>
+  <label>
+    Phone
+    <input type="tel" name="phone" autocomplete="tel" maxlength="100" />
+  </label>
+  <label>
+    Preferred dates
+    <input type="text" name="dates" placeholder="e.g. 12-16 September 2026" maxlength="500" />
+  </label>
+  <label>
+    Group size
+    <input type="number" name="guestCount" min="1" max="12" />
+  </label>
+  <label>
+    Message
+    <textarea
+      name="message"
+      rows="5"
+      required
+      maxlength="10000"
+      placeholder="Tell us what you would like to photograph, preferred start time, and any questions."
+    ></textarea>
+  </label>
+  <button type="submit" class="btn btn-primary">Send Enquiry</button>
+</form>
+
+<script src="/enquiry-form.js" defer></script>
+
+<style>
+  .enquiry-form__confirmation {
+    background: var(--color-paper-dim);
+    border-left: 3px solid var(--color-gold-500);
+    padding: 0.85rem 1rem;
+    margin-bottom: var(--space-m);
+  }
+
+  .enquiry-form__confirmation:focus {
+    outline: none;
+  }
+
+  .enquiry-form {
+    display: grid;
+    gap: var(--space-m);
+    margin-top: var(--space-s);
+    position: relative;
+  }
+
+  .enquiry-form__hp {
+    position: absolute;
+    left: -10000px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+  }
+
+  .enquiry-form label {
+    display: grid;
+    gap: 0.4rem;
+    font-weight: 700;
+    font-size: var(--step-small);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--color-forest-700);
+  }
+
+  .enquiry-form input,
+  .enquiry-form textarea {
+    font-family: var(--font-body);
+    font-size: 1rem;
+    padding: 0.75rem;
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius);
+    background: var(--color-paper);
+    color: var(--color-ink);
+  }
+
+  .enquiry-form button {
+    justify-self: start;
+  }
+</style>

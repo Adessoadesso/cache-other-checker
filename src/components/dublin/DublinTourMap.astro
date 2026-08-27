@@ -1,0 +1,245 @@
+---
+import { dublinTourMapSpots } from '../../data/dublin/tour-map-spots';
+
+const MAPBOX_JS = 'https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js';
+const MAPBOX_TOKEN =
+  'pk.eyJ1IjoicGFub3JhbWljaXJlbGFuZCIsImEiOiJjbWZ0bG84bnAwYTM1MmxzYmI4M2MxMzJxIn0.m32fgvdGUI4tG3ubmhYRXg';
+---
+
+<div class="dublin-tour-map-wrap">
+  <div id="dublin-tour-map" class="dublin-tour-map" aria-label="Interactive map of potential Dublin photo tour route"></div>
+
+  <div class="dublin-tour-map__legend">
+    <h4>Potential Route</h4>
+    {dublinTourMapSpots.map((spot) => (
+      <div class="dublin-tour-map__legend-item">
+        <span class="dublin-tour-map__dot" style={`background:${spot.color}`} />
+        <span>{spot.name}</span>
+      </div>
+    ))}
+  </div>
+
+  <div class="dublin-tour-map__details">
+    <h3>Tour Details</h3>
+    <dl>
+      <div><dt>Duration</dt><dd>4h 30m</dd></div>
+      <div><dt>Meeting Point</dt><dd>St Stephen's Green</dd></div>
+      <div><dt>Price</dt><dd>€500 for 1–2 guests</dd></div>
+      <div><dt>Extra guests</dt><dd>€50 per person</dd></div>
+      <div><dt>Guide</dt><dd>Darren McLoughlin</dd></div>
+    </dl>
+    <p class="dublin-tour-map__note">Every route is tailored on the day</p>
+  </div>
+</div>
+
+<script define:vars={{ spots: dublinTourMapSpots, token: MAPBOX_TOKEN, mapboxJs: MAPBOX_JS }}>
+  function loadMapbox() {
+    return new Promise((resolve, reject) => {
+      if (window.mapboxgl) {
+        resolve(window.mapboxgl);
+        return;
+      }
+      const script = document.createElement('script');
+      script.src = mapboxJs;
+      script.onload = () => resolve(window.mapboxgl);
+      script.onerror = reject;
+      document.head.appendChild(script);
+    });
+  }
+
+  loadMapbox()
+    .then((mapboxgl) => {
+      mapboxgl.accessToken = token;
+      const map = new mapboxgl.Map({
+        container: 'dublin-tour-map',
+        style: 'mapbox://styles/mapbox/streets-v12',
+        center: [-6.2603, 53.345],
+        zoom: 13.5,
+      });
+
+      map.addControl(new mapboxgl.NavigationControl());
+
+      map.on('load', () => {
+        for (const spot of spots) {
+          new mapboxgl.Marker({ color: spot.color, scale: 1.2 })
+            .setLngLat(spot.coordinates)
+            .setPopup(
+              new mapboxgl.Popup({ offset: 25, closeButton: true, closeOnClick: false }).setHTML(
+                `<div style="padding:10px;max-width:220px"><h3 style="margin:0 0 8px;font-size:1em">${spot.name}</h3><p style="margin:0;color:#666;font-size:.85em;line-height:1.4">${spot.description}</p></div>`,
+              ),
+            )
+            .addTo(map);
+        }
+
+        map.addSource('start-circle', {
+          type: 'geojson',
+          data: {
+            type: 'Feature',
+            geometry: { type: 'Point', coordinates: [-6.2614, 53.3387] },
+          },
+        });
+
+        map.addLayer({
+          id: 'start-circle',
+          type: 'circle',
+          source: 'start-circle',
+          paint: {
+            'circle-radius': 80,
+            'circle-color': '#e74c3c',
+            'circle-opacity': 0.15,
+            'circle-stroke-width': 2,
+            'circle-stroke-color': '#e74c3c',
+            'circle-stroke-opacity': 0.6,
+          },
+        });
+
+        map.addSource('route', {
+          type: 'geojson',
+          data: {
+            type: 'Feature',
+            properties: {},
+            geometry: {
+              type: 'LineString',
+              coordinates: spots.map((s) => s.coordinates),
+            },
+          },
+        });
+
+        map.addLayer({
+          id: 'route',
+          type: 'line',
+          source: 'route',
+          layout: { 'line-join': 'round', 'line-cap': 'round' },
+          paint: {
+            'line-color': '#3498db',
+            'line-width': 3,
+            'line-opacity': 0.6,
+            'line-dasharray': [2, 2],
+          },
+        });
+      });
+    })
+    .catch(() => {
+      const el = document.getElementById('dublin-tour-map');
+      if (el) {
+        el.innerHTML =
+          '<p style="padding:2rem;text-align:center;color:#666">Map unavailable — please refresh or try again later.</p>';
+      }
+    });
+</script>
+
+<style>
+  .dublin-tour-map-wrap {
+    position: relative;
+    margin: var(--space-l) 0;
+    border-radius: 15px;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  }
+
+  .dublin-tour-map {
+    width: 100%;
+    height: 500px;
+    background: var(--color-paper-dim);
+  }
+
+  .dublin-tour-map__legend,
+  .dublin-tour-map__details {
+    position: absolute;
+    top: 20px;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    padding: 15px 18px;
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+    z-index: 2;
+    font-size: 0.9rem;
+  }
+
+  .dublin-tour-map__legend {
+    left: 20px;
+    max-width: 240px;
+  }
+
+  .dublin-tour-map__legend h4,
+  .dublin-tour-map__details h3 {
+    margin: 0 0 10px;
+    font-size: 1.05rem;
+    color: var(--color-forest-900);
+  }
+
+  .dublin-tour-map__legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    color: var(--color-ink-soft);
+    line-height: 1.35;
+  }
+
+  .dublin-tour-map__legend-item:last-child {
+    margin-bottom: 0;
+  }
+
+  .dublin-tour-map__dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .dublin-tour-map__details {
+    right: 20px;
+    max-width: 260px;
+  }
+
+  .dublin-tour-map__details dl {
+    margin: 0;
+  }
+
+  .dublin-tour-map__details dl > div {
+    margin-bottom: 8px;
+    color: var(--color-ink-soft);
+  }
+
+  .dublin-tour-map__details dt {
+    display: inline;
+    font-weight: 700;
+    color: var(--color-forest-900);
+  }
+
+  .dublin-tour-map__details dt::after {
+    content: ': ';
+  }
+
+  .dublin-tour-map__details dd {
+    display: inline;
+    margin: 0;
+  }
+
+  .dublin-tour-map__note {
+    margin: 10px 0 0;
+    padding: 8px 12px;
+    background: var(--color-forest-900);
+    color: var(--color-paper);
+    border-radius: 6px;
+    font-size: 0.9rem;
+    text-align: center;
+  }
+
+  @media (max-width: 768px) {
+    .dublin-tour-map__legend,
+    .dublin-tour-map__details {
+      position: relative;
+      top: auto;
+      left: auto;
+      right: auto;
+      max-width: none;
+      margin: 10px;
+    }
+
+    .dublin-tour-map {
+      height: 400px;
+    }
+  }
+</style>

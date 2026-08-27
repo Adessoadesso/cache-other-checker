@@ -1,0 +1,30 @@
+---
+export const prerender = true;
+
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import DublinBookingPageBody from '../../components/dublin/DublinBookingPageBody.astro';
+import { getDublinBookingStructuredData } from '../../lib/dublin-booking-schema';
+import { experiencesLeafCrumbs } from '../../lib/breadcrumbs';
+import '../../styles/marketing-page.css';
+
+const title = 'Book a Private Dublin Photography Masterclass — Panoramic Ireland';
+const description =
+  'Book a private photography tour of Dublin with a photographer commissioned by The New York Times. Fully private, maximum 4 guests, from €500.';
+const breadcrumbs = experiencesLeafCrumbs(title);
+const jsonLd = getDublinBookingStructuredData();
+---
+
+<BaseLayout
+  title={title}
+  description={description}
+  breadcrumbs={breadcrumbs}
+  jsonLd={jsonLd}
+>
+  <link slot="head" rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" />
+  <div class="container marketing-shell">
+    <header class="marketing-head">
+      <h1>{title}</h1>
+    </header>
+    <DublinBookingPageBody />
+  </div>
+</BaseLayout>

@@ -1,0 +1,775 @@
+---
+/**
+ * Public reserve widget — day → start time → guest details.
+ * Talks to api.panoramicireland.com (no payment yet).
+ * Styling is intentionally simple so we can iterate.
+ */
+interface Props {
+  tourId?: string;
+  apiBase?: string;
+  /** Display price for the pricing strip (before a day is chosen). */
+  priceLabel?: string;
+  groupLabel?: string;
+  durationLabel?: string;
+  extraGuestLabel?: string;
+}
+
+const tourId = Astro.props.tourId ?? 'dublin-photo-tour';
+const apiBase =
+  Astro.props.apiBase ??
+  import.meta.env.PUBLIC_BOOKING_API_URL ??
+  'https://api.panoramicireland.com';
+const priceLabel = Astro.props.priceLabel ?? '€500';
+const groupLabel = Astro.props.groupLabel ?? 'For 2 people';
+const durationLabel = Astro.props.durationLabel ?? '4h 30m';
+const extraGuestLabel = Astro.props.extraGuestLabel ?? '+€50 per extra guest';
+
+const reservePhotos = [
+  {
+    src: '/images/gallery-dublin-photography-workshop/dublin-hapenny-bridge-liffey-night-photography-tour-panoramic-ireland-3506.jpg',
+    alt: "Ha'penny Bridge over the Liffey at night",
+  },
+  {
+    src: '/images/gallery-darren-photographer-about/samuel-beckett-bridge-convention-centre-liffey-reflection-9089-Edit-panoramic-ireland.jpg',
+    alt: 'Samuel Beckett Bridge and Convention Centre at dusk',
+  },
+  {
+    src: '/images/2022/08/17/samuel-beckett-bridge-dublin-night-photo-tour-panoramic-ireland-9261.jpg',
+    alt: 'River Liffey and Samuel Beckett Bridge at night',
+  },
+  {
+    src: '/images/2016/03/15/panoramic-ireland-dublin-4399.jpg',
+    alt: 'Dublin street scene on a Panoramic Ireland photo tour',
+  },
+];
+---
+
+<section class="pi-reserve" id="reserve" aria-labelledby="reserve-heading" data-tour-id={tourId} data-api={apiBase}>
+  <h2 id="reserve-heading">Reserve this Experience</h2>
+
+  <div class="pi-reserve__layout" id="reserve-panel">
+    <aside class="pi-reserve__aside">
+      <p class="pi-reserve__lead">
+        Pick a date and start time. We’ll hold the slot and confirm by email — no payment online yet.
+      </p>
+
+      <ul class="pi-reserve__pricing" aria-label="Experience price and details">
+        <li><span class="pi-reserve__pricing-value">{priceLabel}</span></li>
+        <li><span class="pi-reserve__pricing-value">{groupLabel}</span></li>
+        <li><span class="pi-reserve__pricing-value">{durationLabel}</span></li>
+        <li><span class="pi-reserve__pricing-value">{extraGuestLabel}</span></li>
+      </ul>
+
+      <ul class="pi-reserve__trust">
+        <li>After you submit, the time is held and confirmed by email — no card details are taken yet.</li>
+        <li>Cancelled more than 28 days ahead: 50% may be refunded. Inside 28 days, no refund.</li>
+      </ul>
+    </aside>
+
+    <div class="pi-reserve__booking">
+      <div class="pi-reserve__calendar">
+        <div class="pi-reserve__status" id="reserve-status" role="status" hidden></div>
+
+        <div class="pi-reserve__month-nav">
+          <button type="button" class="pi-reserve__nav" id="reserve-prev" aria-label="Previous month">
+            &larr;
+          </button>
+          <h3 class="pi-reserve__month-label" id="reserve-month-label">…</h3>
+          <button type="button" class="pi-reserve__nav" id="reserve-next" aria-label="Next month">
+            &rarr;
+          </button>
+        </div>
+        <button type="button" class="pi-reserve__today" id="reserve-today" hidden>
+          Back to this month
+        </button>
+
+        <ul class="pi-reserve__legend" aria-label="Calendar key">
+          <li>
+            <span class="pi-reserve__swatch is-available" aria-hidden="true"></span>
+            Available
+          </li>
+          <li>
+            <span class="pi-reserve__swatch is-unavailable" aria-hidden="true"></span>
+            Unavailable
+          </li>
+          <li>
+            <span class="pi-reserve__swatch is-selected" aria-hidden="true"></span>
+            Selected
+          </li>
+        </ul>
+
+        <div class="pi-reserve__dow" aria-hidden="true">
+          <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+        </div>
+        <div class="pi-reserve__grid" id="reserve-grid" role="grid" aria-label="Available dates"></div>
+      </div>
+
+      <div class="pi-reserve__actions">
+        <div class="pi-reserve__times" id="reserve-times-wrap" hidden>
+          <label for="reserve-time">Start time</label>
+          <select id="reserve-time"></select>
+          <p class="pi-reserve__price" id="reserve-price" hidden></p>
+        </div>
+
+        <form class="pi-reserve__form" id="reserve-form" hidden>
+          <label for="reserve-name">Your name</label>
+          <input type="text" id="reserve-name" name="guestName" required autocomplete="name" />
+
+          <label for="reserve-email">Email</label>
+          <input type="email" id="reserve-email" name="guestEmail" required autocomplete="email" />
+
+          <label for="reserve-phone">Phone <span class="optional">(optional)</span></label>
+          <input type="tel" id="reserve-phone" name="guestPhone" autocomplete="tel" />
+
+          <label for="reserve-count">Guests</label>
+          <input type="number" id="reserve-count" name="guestCount" min="1" max="4" value="2" required />
+
+          <label for="reserve-notes">Notes <span class="optional">(optional)</span></label>
+          <textarea id="reserve-notes" name="notes" rows="3" placeholder="Anything we should know?"></textarea>
+
+          <button type="submit" class="pi-reserve__submit" id="reserve-submit">Request reservation</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="pi-reserve__photos" aria-label="Dublin photo tour highlights">
+      {
+        reservePhotos.map((photo) => (
+          <img src={photo.src} alt={photo.alt} width="480" height="360" loading="lazy" decoding="async" />
+        ))
+      }
+    </div>
+  </div>
+
+  <div class="pi-reserve__done" id="reserve-done" hidden>
+    <h3>Request received</h3>
+    <p id="reserve-done-msg">
+      Thanks — your preferred time is held. We’ll email you to confirm. No payment has been taken.
+    </p>
+  </div>
+</section>
+
+<script>
+  const root = document.getElementById('reserve');
+  if (root) {
+    const tourId = root.dataset.tourId || 'dublin-photo-tour';
+    const apiBase = (root.dataset.api || '').replace(/\/$/, '');
+    const statusEl = document.getElementById('reserve-status');
+    const grid = document.getElementById('reserve-grid');
+    const monthLabel = document.getElementById('reserve-month-label');
+    const timesWrap = document.getElementById('reserve-times-wrap');
+    const timeSelect = document.getElementById('reserve-time');
+    const priceEl = document.getElementById('reserve-price');
+    const form = document.getElementById('reserve-form');
+    const panel = document.getElementById('reserve-panel');
+    const done = document.getElementById('reserve-done');
+    const doneMsg = document.getElementById('reserve-done-msg');
+    const countInput = document.getElementById('reserve-count');
+
+    let monthKey = '';
+    let selectedDay = '';
+    let dayPayload = null;
+
+    function setStatus(msg, isError) {
+      if (!statusEl) return;
+      if (!msg) {
+        statusEl.hidden = true;
+        statusEl.textContent = '';
+        statusEl.classList.remove('is-error');
+        return;
+      }
+      statusEl.hidden = false;
+      statusEl.textContent = msg;
+      statusEl.classList.toggle('is-error', !!isError);
+    }
+
+    function money(cents, currency) {
+      const sym = currency === 'GBP' ? '£' : '€';
+      return `${sym}${(cents / 100).toFixed(0)}`;
+    }
+
+    function monthTitle(key) {
+      const [y, m] = key.split('-').map(Number);
+      return new Date(Date.UTC(y, m - 1, 1)).toLocaleDateString('en-IE', {
+        month: 'long',
+        year: 'numeric',
+        timeZone: 'UTC',
+      });
+    }
+
+    const todayBtn = document.getElementById('reserve-today');
+
+    function currentMonthKey() {
+      const now = new Date();
+      return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    }
+
+    function syncTodayButton() {
+      if (!todayBtn) return;
+      todayBtn.hidden = !monthKey || monthKey === currentMonthKey();
+    }
+
+    async function loadMonth(key) {
+      setStatus('Loading dates…');
+      selectedDay = '';
+      dayPayload = null;
+      if (timesWrap) timesWrap.hidden = true;
+      if (form) form.hidden = true;
+      try {
+        const res = await fetch(`${apiBase}/api/booking/calendar?tourId=${encodeURIComponent(tourId)}&month=${encodeURIComponent(key)}`);
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Could not load calendar');
+        monthKey = data.month;
+        if (monthLabel) monthLabel.textContent = monthTitle(monthKey);
+        renderGrid(data.days);
+        syncTodayButton();
+        setStatus('');
+      } catch (err) {
+        setStatus(err.message || 'Could not load availability.', true);
+      }
+    }
+
+    function renderGrid(days) {
+      if (!grid) return;
+      grid.innerHTML = '';
+      if (!days.length) return;
+      const first = days[0].day;
+      const [y, m, d] = first.split('-').map(Number);
+      // JS: 0=Sun … convert to Mon-first offset
+      const wd = new Date(Date.UTC(y, m - 1, d)).getUTCDay();
+      const monFirst = (wd + 6) % 7;
+      for (let i = 0; i < monFirst; i++) {
+        const pad = document.createElement('span');
+        pad.className = 'pi-reserve__cell is-pad';
+        grid.appendChild(pad);
+      }
+      for (const row of days) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'pi-reserve__cell' + (row.open ? ' is-open' : ' is-closed');
+        const dayNum = String(Number(row.day.slice(8)));
+        btn.textContent = dayNum;
+        btn.disabled = !row.open;
+        btn.dataset.day = row.day;
+        btn.setAttribute(
+          'aria-label',
+          `${row.day}${row.open ? ', available' : ', unavailable'}`
+        );
+        if (row.open) {
+          btn.setAttribute('aria-pressed', 'false');
+          btn.addEventListener('click', () => selectDay(row.day));
+        }
+        grid.appendChild(btn);
+      }
+    }
+
+    async function selectDay(day) {
+      selectedDay = day;
+      grid?.querySelectorAll('.pi-reserve__cell.is-open').forEach((el) => {
+        const on = el.dataset.day === day;
+        el.classList.toggle('is-selected', on);
+        el.setAttribute('aria-pressed', on ? 'true' : 'false');
+      });
+      setStatus('Loading times…');
+      try {
+        const res = await fetch(
+          `${apiBase}/api/booking/day?tourId=${encodeURIComponent(tourId)}&day=${encodeURIComponent(day)}`
+        );
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'No times available');
+        dayPayload = data;
+        if (countInput) {
+          countInput.max = String(data.maxGuests || 4);
+        }
+        if (timeSelect) {
+          timeSelect.innerHTML = '';
+          if (!data.startTimes.length) {
+            const opt = document.createElement('option');
+            opt.value = '';
+            opt.textContent = 'No start times left this day';
+            timeSelect.appendChild(opt);
+            if (form) form.hidden = true;
+          } else {
+            for (const t of data.startTimes) {
+              const opt = document.createElement('option');
+              opt.value = t;
+              opt.textContent = t;
+              timeSelect.appendChild(opt);
+            }
+            if (form) form.hidden = false;
+          }
+        }
+        if (timesWrap) timesWrap.hidden = false;
+        if (priceEl) {
+          const label = data.discountLabel
+            ? `${money(data.suggestedPriceCents, data.currency)} (${data.discountLabel}; was ${money(data.basePriceCents, data.currency)})`
+            : money(data.suggestedPriceCents, data.currency);
+          priceEl.hidden = false;
+          priceEl.textContent = `Indicative total: ${label} — confirmed by email`;
+        }
+        setStatus(
+          new Date(day + 'T12:00:00').toLocaleDateString('en-IE', {
+            weekday: 'long',
+            day: 'numeric',
+            month: 'long',
+          })
+        );
+      } catch (err) {
+        setStatus(err.message || 'Could not load times.', true);
+        if (timesWrap) timesWrap.hidden = true;
+        if (form) form.hidden = true;
+      }
+    }
+
+    form?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!selectedDay || !timeSelect?.value) {
+        setStatus('Choose a date and start time.', true);
+        return;
+      }
+      const submitBtn = document.getElementById('reserve-submit');
+      if (submitBtn) submitBtn.disabled = true;
+      setStatus('Sending request…');
+      try {
+        const res = await fetch(`${apiBase}/api/booking/reserve`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            tourId,
+            day: selectedDay,
+            startTime: timeSelect.value,
+            guestName: document.getElementById('reserve-name')?.value,
+            guestEmail: document.getElementById('reserve-email')?.value,
+            guestPhone: document.getElementById('reserve-phone')?.value || undefined,
+            guestCount: Number(document.getElementById('reserve-count')?.value || 2),
+            notes: document.getElementById('reserve-notes')?.value || undefined,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Reservation failed');
+        if (panel) panel.hidden = true;
+        if (done) done.hidden = false;
+        if (doneMsg && data.message) doneMsg.textContent = data.message;
+        setStatus('');
+      } catch (err) {
+        setStatus(err.message || 'Reservation failed.', true);
+        if (submitBtn) submitBtn.disabled = false;
+      }
+    });
+
+    document.getElementById('reserve-prev')?.addEventListener('click', () => {
+      if (!monthKey) return;
+      const [y, m] = monthKey.split('-').map(Number);
+      const dt = new Date(Date.UTC(y, m - 2, 1));
+      const key = `${dt.getUTCFullYear()}-${String(dt.getUTCMonth() + 1).padStart(2, '0')}`;
+      loadMonth(key);
+    });
+    document.getElementById('reserve-next')?.addEventListener('click', () => {
+      if (!monthKey) return;
+      const [y, m] = monthKey.split('-').map(Number);
+      const dt = new Date(Date.UTC(y, m, 1));
+      const key = `${dt.getUTCFullYear()}-${String(dt.getUTCMonth() + 1).padStart(2, '0')}`;
+      loadMonth(key);
+    });
+    todayBtn?.addEventListener('click', () => {
+      loadMonth(currentMonthKey());
+    });
+
+    loadMonth(currentMonthKey());
+  }
+</script>
+
+<style>
+  .pi-reserve {
+    margin: var(--space-l) 0;
+    padding: var(--space-m);
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius);
+    background: var(--color-paper);
+    /* Match the page content width (map / meta bar), don’t self-cap narrower. */
+    max-width: none;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  @media (min-width: 720px) {
+    .pi-reserve {
+      padding: var(--space-l);
+    }
+  }
+
+  .pi-reserve h2 {
+    margin: 0 0 var(--space-m);
+    font-size: var(--step-1);
+  }
+
+  .pi-reserve__layout {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-m);
+  }
+
+  .pi-reserve__layout[hidden] {
+    display: none;
+  }
+
+  .pi-reserve__booking {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    max-width: 22rem;
+  }
+
+  .pi-reserve__calendar {
+    max-width: 22rem;
+  }
+
+  /* Hidden on mobile; desktop rule below must come after this. */
+  .pi-reserve__photos {
+    display: none;
+  }
+
+  /* Three independent columns — booking flow isn’t tied to photo height. */
+  @media (min-width: 960px) {
+    .pi-reserve__layout {
+      display: grid;
+      grid-template-columns: 22rem minmax(12rem, 15rem) minmax(18rem, 1fr);
+      gap: var(--space-m) var(--space-l);
+      align-items: start;
+    }
+
+    .pi-reserve__booking {
+      grid-column: 1;
+      grid-row: 1;
+      max-width: none;
+      width: 100%;
+    }
+
+    .pi-reserve__aside {
+      grid-column: 2;
+      grid-row: 1;
+    }
+
+    .pi-reserve__photos {
+      grid-column: 3;
+      grid-row: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 0.85rem;
+      min-width: 0;
+    }
+
+    .pi-reserve__photos img {
+      display: block;
+      width: 100%;
+      height: auto;
+      border-radius: 0.35rem;
+      border: 1px solid var(--color-line);
+    }
+  }
+
+  .pi-reserve__lead {
+    margin: 0 0 var(--space-s);
+    color: var(--color-ink-soft);
+    font-size: var(--step-small);
+    line-height: 1.45;
+  }
+
+  .pi-reserve__pricing {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    margin: 0 0 var(--space-s);
+    padding: 0.75rem 0;
+    border-top: 1px solid var(--color-line);
+    border-bottom: 1px solid var(--color-line);
+    list-style: none;
+    font-size: var(--step-small);
+    line-height: 1.3;
+  }
+
+  .pi-reserve__pricing li {
+    margin: 0;
+  }
+
+  .pi-reserve__pricing-value {
+    font-weight: 700;
+    color: var(--color-forest-900);
+  }
+
+  .pi-reserve__trust {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    font-size: var(--step-small);
+    color: var(--color-ink-soft);
+    line-height: 1.4;
+  }
+
+  .pi-reserve__trust li {
+    padding-left: 0.85rem;
+    position: relative;
+  }
+
+  .pi-reserve__trust li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0.55em;
+    width: 0.35rem;
+    height: 0.35rem;
+    border-radius: 50%;
+    background: var(--color-forest-700);
+  }
+
+  .pi-reserve__status {
+    margin-bottom: var(--space-s);
+    font-size: var(--step-small);
+    color: var(--color-forest-700);
+  }
+
+  .pi-reserve__status.is-error {
+    color: #8a2c2c;
+  }
+
+  .pi-reserve__month-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: var(--space-xs);
+  }
+
+  .pi-reserve__month-label {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 700;
+  }
+
+  .pi-reserve__today {
+    display: block;
+    margin: 0 auto var(--space-s);
+    padding: 0.3rem 0.65rem;
+    border: 1px solid var(--color-line);
+    border-radius: 0.35rem;
+    background: transparent;
+    color: var(--color-forest-700);
+    font: inherit;
+    font-size: var(--step-small);
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .pi-reserve__today:hover {
+    background: color-mix(in srgb, var(--color-forest-700) 8%, var(--color-paper));
+  }
+
+  .pi-reserve__today[hidden] {
+    display: none;
+  }
+
+  .pi-reserve__legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 0.9rem;
+    margin: 0 0 var(--space-s);
+    padding: 0;
+    list-style: none;
+    font-size: 0.8rem;
+    color: var(--color-ink-soft);
+  }
+
+  .pi-reserve__legend li {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+
+  .pi-reserve__swatch {
+    width: 0.85rem;
+    height: 0.85rem;
+    border-radius: 0.2rem;
+    flex-shrink: 0;
+    box-sizing: border-box;
+  }
+
+  .pi-reserve__swatch.is-available {
+    background: color-mix(in srgb, var(--color-forest-700) 18%, var(--color-paper));
+    border: 1px solid color-mix(in srgb, var(--color-forest-700) 45%, var(--color-paper));
+  }
+
+  .pi-reserve__swatch.is-unavailable {
+    background: color-mix(in srgb, var(--color-ink) 6%, var(--color-paper));
+    border: 1px dashed color-mix(in srgb, var(--color-ink) 28%, transparent);
+  }
+
+  .pi-reserve__swatch.is-selected {
+    background: var(--color-forest-700);
+    border: 1px solid var(--color-forest-900);
+  }
+
+  .pi-reserve__nav {
+    border: 1px solid var(--color-line);
+    background: transparent;
+    border-radius: 0.35rem;
+    width: 2rem;
+    height: 2rem;
+    cursor: pointer;
+    font-size: 0.9rem;
+  }
+
+  .pi-reserve__dow {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 0.25rem;
+    margin-bottom: 0.25rem;
+    font-size: 0.7rem;
+    text-align: center;
+    color: var(--color-ink-soft);
+    font-weight: 600;
+  }
+
+  .pi-reserve__grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 0.25rem;
+    width: 100%;
+  }
+
+  /* Cells are created in JS — must be :global or Astro scope attrs never match. */
+  .pi-reserve :global(.pi-reserve__cell) {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    height: auto;
+    max-height: none;
+    border: 1px solid transparent;
+    border-radius: 0.3rem;
+    font: inherit;
+    font-size: 0.8rem;
+    font-weight: 600;
+    background: transparent;
+    color: var(--color-ink-soft);
+    line-height: 1;
+    display: grid;
+    place-items: center;
+    box-sizing: border-box;
+    padding: 0;
+    margin: 0;
+  }
+
+  @media (min-width: 720px) {
+    .pi-reserve__dow {
+      gap: 0.3rem;
+      font-size: 0.72rem;
+      margin-bottom: 0.3rem;
+    }
+
+    .pi-reserve__grid {
+      gap: 0.3rem;
+    }
+
+    .pi-reserve :global(.pi-reserve__cell) {
+      font-size: 0.85rem;
+      border-radius: 0.3rem;
+    }
+  }
+
+  .pi-reserve :global(.pi-reserve__cell.is-pad) {
+    visibility: hidden;
+  }
+
+  .pi-reserve :global(.pi-reserve__cell.is-closed) {
+    background: color-mix(in srgb, var(--color-ink) 6%, var(--color-paper));
+    border: 1px dashed color-mix(in srgb, var(--color-ink) 28%, transparent);
+    color: color-mix(in srgb, var(--color-ink) 45%, transparent);
+    cursor: not-allowed;
+  }
+
+  .pi-reserve :global(.pi-reserve__cell.is-open) {
+    background: color-mix(in srgb, var(--color-forest-700) 18%, var(--color-paper));
+    border: 1px solid color-mix(in srgb, var(--color-forest-700) 45%, var(--color-paper));
+    color: var(--color-forest-900);
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .pi-reserve :global(.pi-reserve__cell.is-open:hover) {
+    background: color-mix(in srgb, var(--color-forest-700) 28%, var(--color-paper));
+  }
+
+  .pi-reserve :global(.pi-reserve__cell.is-open:focus-visible) {
+    outline: 2px solid var(--color-forest-700);
+    outline-offset: 2px;
+  }
+
+  .pi-reserve :global(.pi-reserve__cell.is-selected) {
+    background: var(--color-forest-700);
+    border-color: var(--color-forest-900);
+    color: var(--color-paper);
+  }
+
+  .pi-reserve :global(.pi-reserve__cell.is-selected:hover) {
+    background: var(--color-forest-700);
+    color: var(--color-paper);
+  }
+
+  .pi-reserve__times,
+  .pi-reserve__form {
+    margin-top: var(--space-m);
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    max-width: 22rem;
+  }
+
+  .pi-reserve label {
+    font-weight: 600;
+    font-size: var(--step-small);
+    margin-top: 0.35rem;
+  }
+
+  .pi-reserve .optional {
+    font-weight: 400;
+    color: var(--color-ink-soft);
+  }
+
+  .pi-reserve input,
+  .pi-reserve select,
+  .pi-reserve textarea {
+    width: 100%;
+    padding: 0.6rem 0.7rem;
+    font: inherit;
+    border: 1px solid var(--color-line);
+    border-radius: 0.35rem;
+    background: var(--color-paper);
+  }
+
+  .pi-reserve__price {
+    margin: 0.35rem 0 0;
+    font-size: var(--step-small);
+    color: var(--color-ink-soft);
+  }
+
+  .pi-reserve__submit {
+    margin-top: var(--space-s);
+    padding: 0.75rem 1rem;
+    border: none;
+    border-radius: 0.35rem;
+    background: var(--color-forest-700);
+    color: var(--color-paper);
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .pi-reserve__submit:disabled {
+    opacity: 0.6;
+    cursor: wait;
+  }
+
+  .pi-reserve__done h3 {
+    margin-top: 0;
+  }
+</style>

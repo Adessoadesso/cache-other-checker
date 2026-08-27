@@ -1,0 +1,53 @@
+---
+import { EXPERIENCES_HUB_PATH } from '../../lib/experiences-hub';
+---
+
+<aside class="workshop-explore-more" aria-labelledby="workshop-explore-more-heading">
+  <h2 id="workshop-explore-more-heading">Explore more photography experiences</h2>
+  <p>
+    Private photography experiences are available across Ireland, from Dublin&rsquo;s streets and
+    Wicklow&rsquo;s mountains to the Antrim Coast.
+  </p>
+  <a class="workshop-explore-more__link" href={EXPERIENCES_HUB_PATH}>
+    View all photography experiences <span aria-hidden="true">→</span>
+  </a>
+</aside>
+
+<style>
+  .workshop-explore-more {
+    margin-top: var(--space-xl);
+    padding-top: var(--space-l);
+    border-top: 1px solid var(--color-line);
+    max-width: 40rem;
+  }
+
+  .workshop-explore-more h2 {
+    margin: 0 0 var(--space-xs);
+    font-family: var(--font-display);
+    font-size: clamp(1.35rem, 1.15rem + 0.6vw, 1.7rem);
+    font-weight: 500;
+    color: var(--color-forest-900);
+  }
+
+  .workshop-explore-more p {
+    margin: 0 0 var(--space-s);
+    font-family: var(--font-serif-body);
+    font-size: 1.05rem;
+    line-height: 1.7;
+    color: var(--color-ink-soft);
+  }
+
+  .workshop-explore-more__link {
+    font-family: var(--font-body);
+    font-size: var(--step-small);
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--color-forest-700);
+    text-decoration: none;
+  }
+
+  .workshop-explore-more__link:hover {
+    color: var(--color-gold-600);
+  }
+</style>

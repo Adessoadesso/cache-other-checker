@@ -2,12 +2,12 @@ import { getCollection, type CollectionEntry } from 'astro:content';
 
 /** Live-site blog category URL prefixes (hidden Joomla menu → SEF paths). */
 export const BLOG_CATEGORIES = [
-  { prefix: 'photo-tours-blog', title: 'Photo Tours', href: '/photo-tours-blog' },
-  { prefix: 'blog-ireland-guide', title: 'Guide', href: '/blog-ireland-guide' },
+  { prefix: 'photo-tours-blog', title: 'Photo Tours Blog', href: '/photo-tours-blog' },
+  { prefix: 'blog-ireland-guide', title: 'Guide to Ireland', href: '/blog-ireland-guide' },
   { prefix: 'miscellaneous-blog-category', title: 'Miscellaneous', href: '/miscellaneous-blog-category' },
   {
     prefix: 'photography-photoshop-post-processing',
-    title: 'Photography & Post-processing',
+    title: 'Photography & Editing',
     href: '/photography-photoshop-post-processing',
   },
 ] as const;

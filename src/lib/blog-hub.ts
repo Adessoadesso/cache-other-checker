@@ -1,6 +1,7 @@
 import {
   BLOG_CATEGORIES,
   allPublishedPosts,
+  blogDate,
   postCategoryPrefix,
   postUrl,
   postsInCategory,
@@ -192,7 +193,10 @@ export function categoryStats(posts: BlogPost[]): CategoryStat[] {
 
 export function postExcerpt(post: BlogPost, maxLen = 220): string {
   const raw = post.data.standfirst ?? post.data.description ?? '';
-  const plain = raw.replace(/\s+/g, ' ').trim();
+  const plain = raw
+    .replace(/\s*\.blog-wrap[\s\S]*$/i, '')
+    .replace(/\s+/g, ' ')
+    .trim();
   if (plain.length <= maxLen) return plain;
   return `${plain.slice(0, maxLen).replace(/\s+\S*$/, '')}...`;
 }
@@ -204,7 +208,7 @@ export function postCategoryLink(post: BlogPost) {
 }
 
 export function postDisplayDate(post: BlogPost): Date {
-  return post.data.updatedDate ?? post.data.pubDate;
+  return blogDate(post);
 }
 
 export function formatBlogDate(date: Date): string {
@@ -241,7 +245,7 @@ export function toSearchEntry(post: BlogPost): BlogSearchEntry {
     excerpt: postExcerpt(post),
     heroImage: post.data.heroImage,
     heroImageAlt: post.data.heroImageAlt,
-    pubDate: postDisplayDate(post).toISOString(),
+    pubDate: postDisplayDate(post)?.toISOString() ?? '',
     categoryTitle: category?.title,
     categoryHref: category?.href,
     author: post.data.author,

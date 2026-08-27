@@ -1,14 +1,8 @@
-export interface NavNode {
-  title: string;
-  path: string;
-  children?: NavNode[];
-}
+import type { NavNode } from './nav-node';
 
-// Sourced from the live panoramicireland.com Joomla menu export — do not
-// rewrite titles or paths here; they're preserved 1:1 for SEO continuity.
-// Each becomes a thin placeholder page at the SAME url until real content
-// is migrated (see scripts/migrate-joomla-blog.mjs for the pattern this
-// will eventually follow for these too).
+// Hand-maintained until `npm run export:menus` is run against the Joomla DB.
+// Rules: only published menu items with real targets get `path`. Grouping
+// headings (void links, category hubs) are title-only — see scripts/export-joomla-menus.mjs.
 export const workshopsMenu: NavNode[] = [
   {
     "title": "Book a Private Dublin Photography Masterclass — Panoramic Ireland",
@@ -69,10 +63,6 @@ export const workshopsMenu: NavNode[] = [
   {
     "title": "Rest of Ireland",
     "path": "photography-workshops-ireland/photo-tours-photography-workshops-in-the-rest-of-ireland"
-  },
-  {
-    "title": "Residential Photography Workshop Four Days",
-    "path": "photography-workshops-ireland/residential-4-day-photography-workshop-galway"
   },
   {
     "title": "County Mayo",
