@@ -324,6 +324,10 @@ for (const c of checks) {
   const label = c.ok ? 'ok  ' : 'FAIL';
   if (!c.ok) failed++;
   console.log(`[${label}] ${c.name}: ${c.detail}`);
+  if (!c.ok && process.env.GITHUB_ACTIONS) {
+    const msg = `${c.name}: ${c.detail}`.replace(/%/g, '%25').replace(/\r/g, '%0D').replace(/\n/g, '%0A');
+    console.log(`::error::${msg}`);
+  }
 }
 
 const report = {
