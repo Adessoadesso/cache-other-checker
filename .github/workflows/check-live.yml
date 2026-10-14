@@ -10,10 +10,12 @@ on:
   workflow_dispatch:
 
 jobs:
-  check:
-    name: check:live
+  check-live:
+    name: Live smoke checks
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      contents: read
     steps:
       - name: Checkout
         uses: actions/checkout@v4
