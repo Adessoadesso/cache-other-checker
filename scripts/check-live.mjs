@@ -167,7 +167,7 @@ async function resolveUrl(startUrl, { expectFinal = 200 } = {}) {
       error:
         res.status === expectFinal
           ? undefined
-          : `expected ${expectFinal}, got ${res.status}`,
+          : `expected ${expectFinal}, got ${res.status}${cf ? ` cf=${cf}` : ''}`,
     };
   }
 
@@ -324,14 +324,35 @@ const checks = [
   ...(await checkSampleMedia()),
 ];
 
-// GitHub runners often miss the homepage edge cache and get an Imunify 403.
-// Other HTML pages in the same run returning 200 means the site is up.
-const home = checks.find((c) => c.name === 'html /' && !c.ok && /\b403\b/.test(c.detail));
-const otherHtmlOk = checks.some((c) => c.name.startsWith('html /') && c.name !== 'html /' && c.ok);
-if (home && otherHtmlOk) {
-  home.ok = true;
-  home.warn = true;
-  home.detail += ' — other pages 200; likely a datacenter block on an uncached homepage';
+// Imunify 403s GitHub-hosted runners when the HTML edge cache misses.
+// Worker media still returns 200, which distinguishes a blocked runner from a site outage.
+const is403 = (c) => !c.ok && /\b403\b/.test(c.detail);
+const htmlChecks = checks.filter((c) => c.name.startsWith('html '));
+const html403 = htmlChecks.filter(is403);
+const htmlOk = htmlChecks.some((c) => c.ok);
+const mediaOk = checks.some((c) => c.name.startsWith('media ') && c.ok);
+if (html403.length && !htmlOk && mediaOk) {
+  for (const c of checks) {
+    if (is403(c)) {
+      c.ok = true;
+      c.warn = true;
+      c.silent = true;
+    }
+  }
+  checks.push({
+    name: 'runner',
+    ok: true,
+    warn: true,
+    detail:
+      'GitHub runner got 403 on HTML. Media via the Worker returned 200, so this is a datacenter block, not a site outage.',
+  });
+} else {
+  const home = checks.find((c) => c.name === 'html /' && is403(c));
+  if (home && htmlOk) {
+    home.ok = true;
+    home.warn = true;
+    home.detail += ' — other pages 200; likely a datacenter block on an uncached homepage';
+  }
 }
 
 let failed = 0;
@@ -339,7 +360,7 @@ for (const c of checks) {
   const label = c.warn ? 'WARN' : c.ok ? 'ok  ' : 'FAIL';
   if (!c.ok) failed++;
   console.log(`[${label}] ${c.name}: ${c.detail}`);
-  if (process.env.GITHUB_ACTIONS && (c.warn || !c.ok)) {
+  if (process.env.GITHUB_ACTIONS && !c.silent && (c.warn || !c.ok)) {
     const msg = `${c.name}: ${c.detail}`.replace(/%/g, '%25').replace(/\r/g, '%0D').replace(/\n/g, '%0A');
     console.log(`::${c.warn ? 'warning' : 'error'}::${msg}`);
   }
