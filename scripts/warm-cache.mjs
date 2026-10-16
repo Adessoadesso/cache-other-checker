@@ -29,6 +29,11 @@ const DELAY_MS = Math.max(0, Number(args.delay || 500));
 const LIMIT = args.limit != null ? Number(args.limit) : Infinity;
 const PRIORITY_ONLY = Boolean(args['priority-only']);
 const METHOD = String(args.method || 'GET').toUpperCase() === 'HEAD' ? 'HEAD' : 'GET';
+/** Retries for blips (fetch failed / 502–504 / 429). */
+const RETRIES = Math.max(0, Number(args.retries ?? 3));
+const RETRY_MS = Math.max(200, Number(args['retry-ms'] || 2500));
+/** Exit non-zero only if soft fails exceed this after retries. */
+const FAIL_EXIT_THRESHOLD = Math.max(0, Number(args['fail-threshold'] ?? 5));
 
 const PRIORITY_PATHS = [
   '/',
@@ -120,7 +125,14 @@ function cacheLabel(header) {
   return raw.slice(0, 12);
 }
 
-async function warmOne(url) {
+function isRetryable(r) {
+  if (r.ok) return false;
+  if (r.status === 0) return true;
+  if (r.status === 429 || r.status === 502 || r.status === 503 || r.status === 504) return true;
+  return false;
+}
+
+async function warmOnce(url) {
   const started = Date.now();
   try {
     const res = await fetch(url, {
@@ -151,6 +163,16 @@ async function warmOne(url) {
       error: err instanceof Error ? err.message : String(err),
     };
   }
+}
+
+async function warmOne(url) {
+  let last = await warmOnce(url);
+  for (let attempt = 1; attempt <= RETRIES && isRetryable(last); attempt++) {
+    await delay(RETRY_MS * attempt);
+    last = await warmOnce(url);
+    last.retries = attempt;
+  }
+  return last;
 }
 
 async function mapPool(items, concurrency, fn) {
@@ -186,13 +208,16 @@ const results = await mapPool(urls, CONCURRENCY, async (url, i) => {
   const r = await warmOne(url);
   const n = `[${i + 1}/${urls.length}]`;
   const age = r.age != null ? ` age=${r.age}s` : '';
+  const retry = r.retries ? ` retry=${r.retries}` : '';
   const path = new URL(url).pathname;
   if (!r.ok) {
-    console.log(`${n} FAIL ${String(r.cache).padEnd(12)} ${r.status} ${r.ms}ms ${r.error || ''} ${path}`);
-  } else {
-    // Leading token is HIT/MISS/… so you can scan the column without hunting headers.
     console.log(
-      `${n} ${String(r.cache).padEnd(12)} ${r.status} ${String(r.ms).padStart(5)}ms${age} ${path}`
+      `${n} FAIL ${String(r.cache).padEnd(12)} ${r.status} ${r.ms}ms ${r.error || ''}${retry} ${path}`
+    );
+  } else {
+    // Leading token is HIT/MISS/… — MISS is success for a warmer (fills the edge).
+    console.log(
+      `${n} ${String(r.cache).padEnd(12)} ${r.status} ${String(r.ms).padStart(5)}ms${age}${retry} ${path}`
     );
   }
   // Gentle pacing so shared origin is not hammered on MISS (~1–2 req/s default).
@@ -201,13 +226,15 @@ const results = await mapPool(urls, CONCURRENCY, async (url, i) => {
 });
 
 const ok = results.filter((r) => r.ok).length;
-const hit = results.filter((r) => /^(HIT|STALE|REVALIDATED)$/i.test(r.cache)).length;
-const miss = results.filter((r) => /^(MISS|EXPIRED)$/i.test(r.cache)).length;
+const hit = results.filter((r) => r.ok && /^(HIT|STALE|REVALIDATED)$/i.test(r.cache)).length;
+const miss = results.filter((r) => r.ok && /^(MISS|EXPIRED)$/i.test(r.cache)).length;
 const none = results.filter((r) => r.ok && r.cache === 'NONE').length;
 const fail = results.length - ok;
+const hard = results.filter((r) => r.status === 401 || r.status === 403).length;
 
 console.log('\nDone.');
 console.log(
-  `  ok=${ok} fail=${fail} HIT/STALE/REVALIDATED=${hit} MISS/EXPIRED=${miss} no-cf-header=${none}`
+  `  ok=${ok} fail=${fail} HIT=${hit} MISS=${miss} (MISS is fine — filled cache) no-cf-header=${none}`
 );
-if (fail) process.exitCode = 1;
+// One blip shouldn't red the Actions run; hard blocks or many soft fails still do.
+if (hard > 0 || fail > FAIL_EXIT_THRESHOLD) process.exitCode = 1;
