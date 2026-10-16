@@ -1,0 +1,72 @@
+# Warm Cloudflare edge cache from a US GitHub-hosted runner (US PoP).
+# Manual only — does not run on every push.
+#
+# GitHub → Actions → "Warm Cloudflare cache (US)" → Run workflow
+name: Warm Cloudflare cache (US)
+
+on:
+  workflow_dispatch:
+    inputs:
+      scope:
+        description: What to warm
+        type: choice
+        options:
+          - pages
+          - images
+          - both
+        default: both
+      limit:
+        description: Max URLs (pages or images). Empty = all.
+        type: string
+        default: ''
+      delay_ms:
+        description: Pause between requests (ms). Higher = safer for Imunify.
+        type: string
+        default: '1500'
+      concurrency:
+        description: Parallel page requests (keep 1–2)
+        type: string
+        default: '1'
+
+jobs:
+  warm:
+    name: Warm from US runner
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Warm HTML pages (sitemap)
+        if: inputs.scope == 'pages' || inputs.scope == 'both'
+        env:
+          LIMIT: ${{ inputs.limit }}
+          DELAY: ${{ inputs.delay_ms }}
+          CONCURRENCY: ${{ inputs.concurrency }}
+        run: |
+          set -euo pipefail
+          ARGS=(--concurrency="$CONCURRENCY" --delay="$DELAY")
+          if [ -n "${LIMIT}" ]; then
+            ARGS+=(--limit="$LIMIT")
+          fi
+          echo "Running: node scripts/warm-cache.mjs ${ARGS[*]}"
+          node scripts/warm-cache.mjs "${ARGS[@]}"
+
+      - name: Warm images (sitemap image:loc)
+        if: inputs.scope == 'images' || inputs.scope == 'both'
+        env:
+          LIMIT: ${{ inputs.limit }}
+          DELAY: ${{ inputs.delay_ms }}
+        run: |
+          set -euo pipefail
+          ARGS=(--concurrency=1 --delay="$DELAY")
+          if [ -n "${LIMIT}" ]; then
+            ARGS+=(--limit="$LIMIT")
+          fi
+          echo "Running: node scripts/warm-images.mjs ${ARGS[*]}"
+          node scripts/warm-images.mjs "${ARGS[@]}"
