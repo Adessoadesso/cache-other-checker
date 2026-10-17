@@ -105,6 +105,16 @@ function cacheLabel(header) {
   return raw.slice(0, 12);
 }
 
+/** CF-Ray `abc123-LHR` → `LHR` (Cloudflare colo / PoP). */
+function coloFromCfRay(header) {
+  const raw = String(header || '').trim();
+  if (!raw) return null;
+  const dash = raw.lastIndexOf('-');
+  if (dash < 0 || dash === raw.length - 1) return null;
+  const colo = raw.slice(dash + 1).toUpperCase();
+  return /^[A-Z0-9]{2,4}$/.test(colo) ? colo : null;
+}
+
 function isRetryable(r) {
   if (r.ok) return false;
   if (r.status === 0) return true; // fetch failed / DNS / reset
@@ -125,12 +135,14 @@ async function warmOnce(url) {
     // Workers Cache ([cache] + Cache-Control) surfaces as cf-cache-status.
     const cache = cacheLabel(res.headers.get('cf-cache-status'));
     const age = res.headers.get('age');
+    const colo = coloFromCfRay(res.headers.get('cf-ray'));
     return {
       url,
       ok: res.ok && /^image\//i.test(type),
       status: res.status,
       type,
       cache,
+      colo,
       age: age != null && age !== '' ? age : null,
       bytes: buf.byteLength,
       ms: Date.now() - started,
@@ -142,6 +154,7 @@ async function warmOnce(url) {
       status: 0,
       type: '',
       cache: 'NONE',
+      colo: null,
       age: null,
       bytes: 0,
       ms: Date.now() - started,
@@ -165,6 +178,7 @@ function formatLine(i, total, r) {
   const kb = `${Math.round((r.bytes || 0) / 1024)}KB`;
   const age = r.age != null ? ` age=${r.age}s` : '';
   const retry = r.retries ? ` retry=${r.retries}` : '';
+  const colo = r.colo ? ` ${r.colo}` : '';
   const path = (() => {
     try {
       return new URL(r.url).pathname;
@@ -173,13 +187,13 @@ function formatLine(i, total, r) {
     }
   })();
   if (r.status === 404 || r.status === 410) {
-    return `${n} SKIP ${String(r.cache).padEnd(12)} ${r.status} ${path}`;
+    return `${n} SKIP ${String(r.cache).padEnd(12)}${colo} ${r.status} ${path}`;
   }
   if (!r.ok) {
-    return `${n} FAIL ${String(r.cache).padEnd(12)} ${r.status} ${r.type || ''} ${r.error || ''}${retry} ${path}`;
+    return `${n} FAIL ${String(r.cache).padEnd(12)}${colo} ${r.status} ${r.type || ''} ${r.error || ''}${retry} ${path}`;
   }
   // Leading token is HIT/MISS/… — MISS is success for a warmer (fills the edge).
-  return `${n} ${String(r.cache).padEnd(12)} ${r.status} ${kb.padStart(6)} ${String(r.ms).padStart(5)}ms${age}${retry} ${path}`;
+  return `${n} ${String(r.cache).padEnd(12)}${colo} ${r.status} ${kb.padStart(6)} ${String(r.ms).padStart(5)}ms${age}${retry} ${path}`;
 }
 
 async function mapPool(items, concurrency, fn) {
@@ -209,6 +223,7 @@ if (urls.length === 0) {
 }
 
 let blocked = false;
+let reportedColo = false;
 const results = await mapPool(urls, CONCURRENCY, async (url, i) => {
   if (blocked) {
     return {
@@ -217,6 +232,7 @@ const results = await mapPool(urls, CONCURRENCY, async (url, i) => {
       status: 0,
       type: '',
       cache: 'NONE',
+      colo: null,
       age: null,
       bytes: 0,
       ms: 0,
@@ -224,6 +240,10 @@ const results = await mapPool(urls, CONCURRENCY, async (url, i) => {
     };
   }
   const r = await warmOne(url);
+  if (!reportedColo && r.colo) {
+    console.log(`CF colo: ${r.colo}`);
+    reportedColo = true;
+  }
   console.log(formatLine(i, urls.length, r));
   // Only abort the run on hard blocks (Imunify/WAF). Transient fetch failures continue.
   if (STOP_STATUSES.has(r.status)) {
@@ -241,8 +261,10 @@ const fail = results.filter(
 const hit = results.filter((r) => r.ok && /^(HIT|STALE|REVALIDATED)$/i.test(r.cache || '')).length;
 const miss = results.filter((r) => r.ok && /^(MISS|EXPIRED)$/i.test(r.cache || '')).length;
 const none = results.filter((r) => r.ok && r.cache === 'NONE').length;
+const colos = [...new Set(results.map((r) => r.colo).filter(Boolean))];
 console.log(
   `\nDone. ok=${ok} fail=${fail} skip=${skip} HIT=${hit} MISS=${miss} (MISS is fine — filled cache) no-cf-header=${none}${blocked ? ' (stopped early: hard block)' : ''}`
 );
+console.log(`CF colo(s): ${colos.length ? colos.join(', ') : 'unknown'}`);
 // Fail the job only on hard block, or if more than a few soft failures remain after retries.
 if (blocked || fail > 5) process.exitCode = 1;

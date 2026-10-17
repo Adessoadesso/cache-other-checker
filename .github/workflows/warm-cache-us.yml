@@ -42,6 +42,22 @@ jobs:
         with:
           node-version: '22'
 
+      - name: Detect Cloudflare colo
+        id: colo
+        run: |
+          set -euo pipefail
+          RAY=$(curl -sI --max-time 20 https://panoramicireland.com/ \
+            | tr -d '\r' \
+            | awk -F': ' 'BEGIN{IGNORECASE=1} $1=="cf-ray"{print $2; exit}')
+          COLO=$(printf '%s' "$RAY" | awk -F- '{print toupper($NF)}')
+          if [ -z "$COLO" ]; then COLO=unknown; fi
+          echo "cf_ray=${RAY}" >> "$GITHUB_OUTPUT"
+          echo "colo=${COLO}" >> "$GITHUB_OUTPUT"
+          echo "CF colo: ${COLO} (cf-ray: ${RAY:-none})"
+          echo "### Cloudflare edge" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Colo:** \`${COLO}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **CF-Ray:** \`${RAY:-none}\`" >> "$GITHUB_STEP_SUMMARY"
+
       - name: Warm HTML pages (sitemap)
         if: inputs.scope == 'pages' || inputs.scope == 'both'
         env:
@@ -54,6 +70,7 @@ jobs:
           if [ -n "${LIMIT}" ]; then
             ARGS+=(--limit="$LIMIT")
           fi
+          echo "CF colo (probe): ${{ steps.colo.outputs.colo }}"
           echo "Running: node scripts/warm-cache.mjs ${ARGS[*]}"
           node scripts/warm-cache.mjs "${ARGS[@]}"
 
@@ -68,5 +85,6 @@ jobs:
           if [ -n "${LIMIT}" ]; then
             ARGS+=(--limit="$LIMIT")
           fi
+          echo "CF colo (probe): ${{ steps.colo.outputs.colo }}"
           echo "Running: node scripts/warm-images.mjs ${ARGS[*]}"
           node scripts/warm-images.mjs "${ARGS[@]}"

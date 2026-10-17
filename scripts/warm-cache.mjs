@@ -125,6 +125,16 @@ function cacheLabel(header) {
   return raw.slice(0, 12);
 }
 
+/** CF-Ray `abc123-LHR` → `LHR` (Cloudflare colo / PoP). */
+function coloFromCfRay(header) {
+  const raw = String(header || '').trim();
+  if (!raw) return null;
+  const dash = raw.lastIndexOf('-');
+  if (dash < 0 || dash === raw.length - 1) return null;
+  const colo = raw.slice(dash + 1).toUpperCase();
+  return /^[A-Z0-9]{2,4}$/.test(colo) ? colo : null;
+}
+
 function isRetryable(r) {
   if (r.ok) return false;
   if (r.status === 0) return true;
@@ -144,11 +154,13 @@ async function warmOnce(url) {
     if (METHOD === 'GET') await res.arrayBuffer();
     const cache = cacheLabel(res.headers.get('cf-cache-status'));
     const age = res.headers.get('age');
+    const colo = coloFromCfRay(res.headers.get('cf-ray'));
     return {
       url,
       ok: res.ok,
       status: res.status,
       cache,
+      colo,
       age: age != null && age !== '' ? age : null,
       ms: Date.now() - started,
     };
@@ -158,6 +170,7 @@ async function warmOnce(url) {
       ok: false,
       status: 0,
       cache: 'NONE',
+      colo: null,
       age: null,
       ms: Date.now() - started,
       error: err instanceof Error ? err.message : String(err),
@@ -204,20 +217,26 @@ if (!PRIORITY_ONLY && Number.isFinite(LIMIT)) {
 console.log(
   `Warming ${urls.length} URL(s) on ${ORIGIN} (${METHOD}, concurrency ${CONCURRENCY}, delay ${DELAY_MS}ms)`
 );
+let reportedColo = false;
 const results = await mapPool(urls, CONCURRENCY, async (url, i) => {
   const r = await warmOne(url);
+  if (!reportedColo && r.colo) {
+    console.log(`CF colo: ${r.colo}`);
+    reportedColo = true;
+  }
   const n = `[${i + 1}/${urls.length}]`;
   const age = r.age != null ? ` age=${r.age}s` : '';
   const retry = r.retries ? ` retry=${r.retries}` : '';
+  const colo = r.colo ? ` ${r.colo}` : '';
   const path = new URL(url).pathname;
   if (!r.ok) {
     console.log(
-      `${n} FAIL ${String(r.cache).padEnd(12)} ${r.status} ${r.ms}ms ${r.error || ''}${retry} ${path}`
+      `${n} FAIL ${String(r.cache).padEnd(12)}${colo} ${r.status} ${r.ms}ms ${r.error || ''}${retry} ${path}`
     );
   } else {
     // Leading token is HIT/MISS/… — MISS is success for a warmer (fills the edge).
     console.log(
-      `${n} ${String(r.cache).padEnd(12)} ${r.status} ${String(r.ms).padStart(5)}ms${age}${retry} ${path}`
+      `${n} ${String(r.cache).padEnd(12)}${colo} ${r.status} ${String(r.ms).padStart(5)}ms${age}${retry} ${path}`
     );
   }
   // Gentle pacing so shared origin is not hammered on MISS (~1–2 req/s default).
@@ -231,10 +250,12 @@ const miss = results.filter((r) => r.ok && /^(MISS|EXPIRED)$/i.test(r.cache)).le
 const none = results.filter((r) => r.ok && r.cache === 'NONE').length;
 const fail = results.length - ok;
 const hard = results.filter((r) => r.status === 401 || r.status === 403).length;
+const colos = [...new Set(results.map((r) => r.colo).filter(Boolean))];
 
 console.log('\nDone.');
 console.log(
   `  ok=${ok} fail=${fail} HIT=${hit} MISS=${miss} (MISS is fine — filled cache) no-cf-header=${none}`
 );
+console.log(`  CF colo(s): ${colos.length ? colos.join(', ') : 'unknown'}`);
 // One blip shouldn't red the Actions run; hard blocks or many soft fails still do.
 if (hard > 0 || fail > FAIL_EXIT_THRESHOLD) process.exitCode = 1;
