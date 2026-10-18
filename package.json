@@ -78,6 +78,7 @@
     "generate:giof-maps": "node scripts/generate-giof-static-maps.mjs",
     "warm:cache": "node scripts/warm-cache.mjs",
     "warm:images": "node scripts/warm-images.mjs",
+    "warm:images:all": "node scripts/warm-images.mjs --from-disk",
     "check:live": "node scripts/check-live.mjs",
     "sync:media": "node scripts/sync-media-to-r2.mjs"
   },

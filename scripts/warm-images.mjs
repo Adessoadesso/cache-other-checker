@@ -1,16 +1,21 @@
 /**
- * Warm /images/* and /media/* via GET (Worker Cache API).
+ * Warm /images/* and /media/* via GET (Workers Caching + Cache-Control).
  *
- * Sources (first that works):
- *   --list=path/to/urls.txt   one https URL per line
- *   else: image:loc entries from the live Astro sitemap
+ * Sources (first match wins):
+ *   --from-disk              every file under public/images + public/media
+ *   --list=path/to/urls.txt  one https URL per line
+ *   else                     image:loc entries from the live Astro sitemap
  *
  * Usage:
  *   node scripts/warm-images.mjs
  *   node scripts/warm-images.mjs --limit=100 --delay=2000
  *   node scripts/warm-images.mjs --list=scripts/data/warm-images.txt
+ *   node scripts/warm-images.mjs --from-disk --delay=1000
  */
+import fs from 'node:fs';
+import path from 'node:path';
 import { readFile } from 'node:fs/promises';
+import { fileURLToPath } from 'node:url';
 import { setTimeout as delay } from 'node:timers/promises';
 
 const args = Object.fromEntries(
@@ -20,12 +25,31 @@ const args = Object.fromEntries(
   })
 );
 
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const ORIGIN = String(args.origin || 'https://panoramicireland.com').replace(/\/$/, '');
 const SITEMAP = String(args.sitemap || `${ORIGIN}/sitemap-index.xml`);
 const DELAY_MS = Math.max(0, Number(args.delay || 2000));
 const LIMIT = args.limit != null ? Number(args.limit) : Infinity;
 const CONCURRENCY = Math.max(1, Number(args.concurrency || 1));
 const LIST = args.list ? String(args.list) : null;
+const FROM_DISK = Boolean(args['from-disk']);
+
+const DISK_EXTS = new Set([
+  '.jpg',
+  '.jpeg',
+  '.png',
+  '.gif',
+  '.webp',
+  '.avif',
+  '.svg',
+  '.ico',
+  '.bmp',
+  '.tif',
+  '.tiff',
+  '.mp4',
+  '.webm',
+  '.pdf',
+]);
 /** Retries for blips (fetch failed / 502–504 / 429). Does not apply to 403/404. */
 const RETRIES = Math.max(0, Number(args.retries ?? 3));
 const RETRY_MS = Math.max(200, Number(args['retry-ms'] || 2500));
@@ -71,7 +95,33 @@ async function loadSitemapXml(sitemapUrl) {
   return parts.join('\n');
 }
 
+function walkPublicMedia(dir, urlPrefix, out) {
+  if (!fs.existsSync(dir)) return;
+  for (const ent of fs.readdirSync(dir, { withFileTypes: true })) {
+    if (ent.name.startsWith('.')) continue;
+    const full = path.join(dir, ent.name);
+    if (ent.isDirectory()) {
+      walkPublicMedia(full, `${urlPrefix}/${ent.name}`, out);
+      continue;
+    }
+    if (!ent.isFile()) continue;
+    const ext = path.extname(ent.name).toLowerCase();
+    if (!DISK_EXTS.has(ext)) continue;
+    out.push(`${ORIGIN}${urlPrefix}/${ent.name}`.replace(/\\/g, '/'));
+  }
+}
+
+/** All media URLs from the checked-out public/ tree (post-purge full warm). */
+function loadUrlsFromDisk() {
+  const out = [];
+  walkPublicMedia(path.join(ROOT, 'public', 'images'), '/images', out);
+  walkPublicMedia(path.join(ROOT, 'public', 'media'), '/media', out);
+  out.sort((a, b) => a.localeCompare(b));
+  return out;
+}
+
 async function loadUrls() {
+  if (FROM_DISK) return loadUrlsFromDisk();
   if (LIST) {
     const text = await readFile(LIST, 'utf8');
     return text
@@ -211,11 +261,15 @@ async function mapPool(items, concurrency, fn) {
   return out;
 }
 
-let urls = [...new Set((await loadUrls()).filter(isMediaUrl))];
+const rawUrls = await loadUrls();
+let urls = FROM_DISK
+  ? [...new Set(rawUrls)]
+  : [...new Set(rawUrls.filter(isMediaUrl))];
 if (Number.isFinite(LIMIT)) urls = urls.slice(0, LIMIT);
 
+const source = FROM_DISK ? 'public/images+media' : LIST ? `--list=${LIST}` : 'sitemap image:loc';
 console.log(
-  `Warming ${urls.length} image(s) on ${ORIGIN} (concurrency ${CONCURRENCY}, delay ${DELAY_MS}ms)`
+  `Warming ${urls.length} image(s) on ${ORIGIN} from ${source} (concurrency ${CONCURRENCY}, delay ${DELAY_MS}ms)`
 );
 if (urls.length === 0) {
   console.error('No image URLs found.');

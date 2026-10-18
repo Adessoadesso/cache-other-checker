@@ -1,0 +1,66 @@
+# Full-tree image warm from a US GitHub runner (every public/images + public/media file).
+# Manual only — use after a rare full purge. Prefer the sitemap warmer for routine runs.
+#
+# GitHub → Actions → "Warm all images (US, full disk)" → Run workflow
+name: Warm all images (US, full disk)
+
+on:
+  workflow_dispatch:
+    inputs:
+      delay_ms:
+        description: Pause between requests (ms). Higher = gentler.
+        type: string
+        default: '1000'
+      limit:
+        description: Max URLs (empty = all ~7k tracked files).
+        type: string
+        default: ''
+      concurrency:
+        description: Parallel GETs (keep 1 unless you know what you are doing)
+        type: string
+        default: '1'
+
+jobs:
+  warm-full:
+    name: Full disk image warm (US)
+    runs-on: ubuntu-latest
+    # ~7k URLs × 1s ≈ 2h; leave headroom for MISS latency + retries
+    timeout-minutes: 600
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Detect Cloudflare colo
+        id: colo
+        run: |
+          set -euo pipefail
+          RAY=$(curl -sI --max-time 20 https://panoramicireland.com/ \
+            | tr -d '\r' \
+            | awk -F': ' 'BEGIN{IGNORECASE=1} $1=="cf-ray"{print $2; exit}')
+          COLO=$(printf '%s' "$RAY" | awk -F- '{print toupper($NF)}')
+          if [ -z "$COLO" ]; then COLO=unknown; fi
+          echo "colo=${COLO}" >> "$GITHUB_OUTPUT"
+          echo "CF colo: ${COLO} (cf-ray: ${RAY:-none})"
+          echo "### Cloudflare edge" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Colo:** \`${COLO}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Mode:** full \`public/images\` + \`public/media\` disk walk" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Warm every image/media file
+        env:
+          LIMIT: ${{ inputs.limit }}
+          DELAY: ${{ inputs.delay_ms }}
+          CONCURRENCY: ${{ inputs.concurrency }}
+        run: |
+          set -euo pipefail
+          ARGS=(--from-disk --concurrency="$CONCURRENCY" --delay="$DELAY")
+          if [ -n "${LIMIT}" ]; then
+            ARGS+=(--limit="$LIMIT")
+          fi
+          echo "CF colo (probe): ${{ steps.colo.outputs.colo }}"
+          echo "Running: node scripts/warm-images.mjs ${ARGS[*]}"
+          node scripts/warm-images.mjs "${ARGS[@]}"
