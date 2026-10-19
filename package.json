@@ -79,6 +79,7 @@
     "warm:cache": "node scripts/warm-cache.mjs",
     "warm:images": "node scripts/warm-images.mjs",
     "warm:images:all": "node scripts/warm-images.mjs --from-disk",
+    "curl:images": "node scripts/curl-images-timing.mjs",
     "check:live": "node scripts/check-live.mjs",
     "sync:media": "node scripts/sync-media-to-r2.mjs",
     "sync:media:bunny": "node scripts/sync-media-to-bunny.mjs",

@@ -1,0 +1,98 @@
+# Curl timing probe from a US GitHub-hosted runner (whatever CF colo you land on).
+# Manual only — use to check HIT/MISS + TTFB/total from the US.
+#
+# GitHub → Actions → "Curl image timing (US)" → Run workflow
+name: Curl image timing (US)
+
+on:
+  workflow_dispatch:
+    inputs:
+      count:
+        description: How many random sitemap images to curl
+        type: string
+        default: '30'
+      passes:
+        description: Passes over the same sample (2 = fill then measure HIT)
+        type: string
+        default: '2'
+      seed:
+        description: Shuffle seed (empty = random each run)
+        type: string
+        default: ''
+
+jobs:
+  curl-timing:
+    name: Curl timings from US runner
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Detect Cloudflare colo
+        id: colo
+        run: |
+          set -euo pipefail
+          RAY=$(curl -sI --max-time 20 https://panoramicireland.com/ \
+            | tr -d '\r' \
+            | awk -F': ' 'BEGIN{IGNORECASE=1} $1=="cf-ray"{print $2; exit}')
+          COLO=$(printf '%s' "$RAY" | awk -F- '{print toupper($NF)}')
+          if [ -z "$COLO" ]; then COLO=unknown; fi
+          echo "colo=${COLO}" >> "$GITHUB_OUTPUT"
+          echo "CF colo: ${COLO} (cf-ray: ${RAY:-none})"
+          echo "### Cloudflare edge" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Colo:** \`${COLO}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Note:** times include runner → colo path (not a Dallas resident browser)" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Curl random sitemap images
+        env:
+          COUNT: ${{ inputs.count }}
+          PASSES: ${{ inputs.passes }}
+          SEED: ${{ inputs.seed }}
+        run: |
+          set -euo pipefail
+          ARGS=(--count="$COUNT" --pass="$PASSES")
+          if [ -n "${SEED}" ]; then
+            ARGS+=(--seed="$SEED")
+          fi
+          echo "CF colo (probe): ${{ steps.colo.outputs.colo }}"
+          echo "Running: node scripts/curl-images-timing.mjs ${ARGS[*]}"
+          node scripts/curl-images-timing.mjs "${ARGS[@]}"
+
+      - name: Summary from report
+        if: always()
+        run: |
+          set -euo pipefail
+          if [ ! -f reports/curl-images-timing.json ]; then
+            echo "No report file" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          node -e '
+            const r = require("./reports/curl-images-timing.json");
+            const lines = ["### Curl timing results", ""];
+            for (const p of r.passes) {
+              const s = p.summary;
+              lines.push(`**Pass ${p.pass}** — HIT=${s.hit} MISS=${s.miss} EXPIRED=${s.expired} fail=${s.fail}`);
+              lines.push(`- total p50/p90: ${s.totalMs.p50}ms / ${s.totalMs.p90}ms (avg ${s.totalMs.avg}ms)`);
+              lines.push(`- ttfb p50/p90: ${s.ttfbMs.p50}ms / ${s.ttfbMs.p90}ms`);
+              lines.push(`- colos: ${(s.colos || []).join(", ") || "unknown"}`);
+              lines.push("");
+            }
+            console.log(lines.join("\n"));
+            require("fs").appendFileSync(process.env.GITHUB_STEP_SUMMARY, lines.join("\n") + "\n");
+          '
+
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: curl-images-timing
+          path: reports/curl-images-timing.json
+          if-no-files-found: ignore
