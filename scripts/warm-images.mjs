@@ -237,8 +237,8 @@ async function warmOne(url) {
   return last;
 }
 
-function formatLine(i, total, r) {
-  const n = `[${i + 1}/${total}]`;
+function formatLine(i, count, r) {
+  const n = `[${i + 1}/${count}]`;
   const kb = `${Math.round((r.bytes || 0) / 1024)}KB`;
   const age = r.age != null ? ` age=${r.age}s` : '';
   const retry = r.retries ? ` retry=${r.retries}` : '';
@@ -258,13 +258,13 @@ function formatLine(i, total, r) {
   }
   const ttfb =
     r.ttfbMs != null ? ` ttfb=${String(r.ttfbMs).padStart(4)}ms` : '';
-  const total = ` total=${String(r.ms).padStart(4)}ms`;
+  const totalMs = ` total=${String(r.ms).padStart(4)}ms`;
   // On CF HIT these Worker/Bunny values are historical (from first cache fill).
   const worker =
     r.workerMs != null ? ` worker=${r.workerMs}ms` : '';
   const bunny = r.bunnyMs != null ? ` bunny=${r.bunnyMs}ms` : '';
   // Leading token is HIT/MISS/… — MISS is success for a warmer (fills the edge).
-  return `${n} ${String(r.cache).padEnd(12)}${colo} ${r.status} ${kb.padStart(6)}${ttfb}${total}${worker}${bunny}${age}${retry} ${path}`;
+  return `${n} ${String(r.cache).padEnd(12)}${colo} ${r.status} ${kb.padStart(6)}${ttfb}${totalMs}${worker}${bunny}${age}${retry} ${path}`;
 }
 
 async function mapPool(items, concurrency, fn) {
