@@ -53,8 +53,12 @@ const DISK_EXTS = new Set([
 /** Retries for blips (fetch failed / 502–504 / 429). Does not apply to 403/404. */
 const RETRIES = Math.max(0, Number(args.retries ?? 3));
 const RETRY_MS = Math.max(200, Number(args['retry-ms'] || 2500));
-/** Stop the whole run only on hard blocks (WAF/auth), not one network blip. */
-const STOP_STATUSES = new Set([401, 403]);
+/**
+ * Stop the whole run only on auth walls that mean the warmer itself is blocked.
+ * Per-URL 403s (e.g. one bad media path) must not abort the other ~800 URLs —
+ * they count as soft fails instead.
+ */
+const STOP_STATUSES = new Set([401]);
 
 function extractLocs(xml) {
   const locs = [];

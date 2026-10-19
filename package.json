@@ -80,7 +80,9 @@
     "warm:images": "node scripts/warm-images.mjs",
     "warm:images:all": "node scripts/warm-images.mjs --from-disk",
     "check:live": "node scripts/check-live.mjs",
-    "sync:media": "node scripts/sync-media-to-r2.mjs"
+    "sync:media": "node scripts/sync-media-to-r2.mjs",
+    "sync:media:bunny": "node scripts/sync-media-to-bunny.mjs",
+    "audit:media:bunny": "node scripts/audit-bunny-media.mjs"
   },
   "dependencies": {
     "@astrojs/cloudflare": "14.1.1",

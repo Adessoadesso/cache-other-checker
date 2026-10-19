@@ -1,38 +1,133 @@
 name = "panoramicireland"
 main = "worker/entry.ts"
-compatibility_date = "2026-07-01"
+compatibility_date = "2026-07-13"
 compatibility_flags = ["nodejs_compat"]
+# Access post-login callback hits workers.dev first (eager cookie). Must be live or login lands on 1042.
+workers_dev = true
+
+# Edge-cache Worker responses (images) via Cache-Control. Cache API was a no-op here.
+# Non-media responses get Cache-Control: private, no-store in worker/entry.ts.
+[cache]
+enabled = true
+# Keep warm image cache across deploys; flip MEDIA_BACKEND / overwrite files → purge Workers Caching.
+cross_version_cache = true
 
 [triggers]
-# Every 15 minutes — cheap to run, and keeps the gap between a hold expiring
+# Every 15 minutes â€” cheap to run, and keeps the gap between a hold expiring
 # and the slot reopening small regardless of which lifecycle (15min Stripe
 # hold or 72h manual-confirm hold) triggered it.
 crons = ["*/15 * * * *"]
 
+# Worker build output (npm run build:worker â†’ dist-worker/client). Static cPanel site uses dist/.
+# run_worker_first: SSR (/admin, /api) must win over the Assets "nothing here yet" empty page.
 [assets]
-directory = "./dist"
+directory = "./dist-worker/client"
+binding = "ASSETS"
+run_worker_first = true
 
 [[d1_databases]]
 binding = "DB"
 database_name = "panoramicireland-db"
-database_id = "REPLACE_WITH_D1_DATABASE_ID"
+database_id = "0862d075-dca3-42c1-924e-b10a06d43668"
 
-# Set these via `wrangler secret put <NAME>` — never commit real values.
+[[kv_namespaces]]
+binding = "SESSION"
+id = "93c8e328bc7643cd84dab827164b236d"
+
+# Licensing masters + watermarked previews (not served from cPanel).
+# Create once: wrangler r2 bucket create panoramicireland-licensing
+[[r2_buckets]]
+binding = "LICENSING_R2"
+bucket_name = "panoramicireland-licensing"
+
+# Site images/media â€” same URL paths as cPanel (/images/*, /media/*).
+# Create once: wrangler r2 bucket create panoramicireland-media
+[[r2_buckets]]
+binding = "MEDIA_R2"
+bucket_name = "panoramicireland-media"
+
+# Serve media from R2 on the apex (bypasses cPanel Imunify 403s).
+# HTML/htaccess/robots/Trinity stay on origin; only these path prefixes.
+[[routes]]
+pattern = "panoramicireland.com/images/*"
+zone_name = "panoramicireland.com"
+
+[[routes]]
+pattern = "panoramicireland.com/media/*"
+zone_name = "panoramicireland.com"
+
+[[routes]]
+pattern = "www.panoramicireland.com/images/*"
+zone_name = "panoramicireland.com"
+
+[[routes]]
+pattern = "www.panoramicireland.com/media/*"
+zone_name = "panoramicireland.com"
+
+# Brand icons (beat panoramic-html /* so Astro's default .ico cannot resurface).
+[[routes]]
+pattern = "panoramicireland.com/favicon.ico"
+zone_name = "panoramicireland.com"
+
+[[routes]]
+pattern = "panoramicireland.com/favicon.png"
+zone_name = "panoramicireland.com"
+
+[[routes]]
+pattern = "panoramicireland.com/favicon.svg"
+zone_name = "panoramicireland.com"
+
+[[routes]]
+pattern = "panoramicireland.com/apple-touch-icon.png"
+zone_name = "panoramicireland.com"
+
+[[routes]]
+pattern = "www.panoramicireland.com/favicon.ico"
+zone_name = "panoramicireland.com"
+
+[[routes]]
+pattern = "www.panoramicireland.com/favicon.png"
+zone_name = "panoramicireland.com"
+
+[[routes]]
+pattern = "www.panoramicireland.com/favicon.svg"
+zone_name = "panoramicireland.com"
+
+[[routes]]
+pattern = "www.panoramicireland.com/apple-touch-icon.png"
+zone_name = "panoramicireland.com"
+
+# Set these via `wrangler secret put <NAME>` â€” never commit real values.
 # STRIPE_SECRET_KEY
 # STRIPE_WEBHOOK_SECRET
 # GOOGLE_CALENDAR_CLIENT_EMAIL
 # GOOGLE_CALENDAR_PRIVATE_KEY
 # GOOGLE_CALENDAR_ID
 # RESEND_API_KEY
+# TURNSTILE_SECRET_KEY
+# PAYPAL_CLIENT_ID
+# PAYPAL_CLIENT_SECRET
+# PAYPAL_WEBHOOK_ID
+# BUNNY_TOKEN_AUTH_KEY  (Pull Zone Advanced token auth — after enabling in Bunny Security)
 
 [vars]
 PUBLIC_SITE_URL = "https://panoramicireland.com"
-# From the Access application you create for /admin* — see README.
-CF_ACCESS_TEAM_DOMAIN = "REPLACE_WITH_YOUR_TEAM_DOMAIN"
-CF_ACCESS_AUD = "REPLACE_WITH_ACCESS_APP_AUD_TAG"
-# Where contact-form enquiries land — not secret, just config.
+# Media origin: r2 (default, live today) | bunny (after sample sync + bench)
+# bunny + R2 fallback on 404 (safe while library is only partly synced)
+MEDIA_BACKEND = "bunny"
+BUNNY_CDN_ORIGIN = "https://panoramic-visuals.b-cdn.net"
+# PayPal: default off in deployed envs. Local: set PAYPAL_BOOKING_ENABLED=true in .dev.vars.
+# Per-tour tours.paypal_enabled still required (Dublin=1 after migrate).
+PAYPAL_BOOKING_ENABLED = "false"
+PAYPAL_MODE = "sandbox"
+# From the Access application you create for /admin* â€” see README.
+CF_ACCESS_TEAM_DOMAIN = "cold-cloud-10c0.cloudflareaccess.com"
+CF_ACCESS_AUD = "21cd0fea7e2171cfd001f14cab81c887cb2938c191f01c43bffa655868731d64"
+# Where contact-form enquiries land â€” not secret, just config.
 ENQUIRY_TO_EMAIL = "contact@panoramicireland.com"
-ENQUIRY_FROM_EMAIL = "Panoramic Ireland <enquiries@panoramicireland.com>"
+ENQUIRY_FROM_EMAIL = "Panoramic Ireland <enquiries@send.panoramicireland.com>"
+# Hostnames Turnstile siteverify must return (comma-separated, lowercase).
+TURNSTILE_HOSTNAMES = "panoramicireland.com,www.panoramicireland.com,echtraechtra.com,www.echtraechtra.com,localhost,127.0.0.1"
 
 [observability]
 enabled = true
@@ -43,3 +138,11 @@ enabled = true
 binding = "DB"
 database_name = "panoramicireland-db-preview"
 database_id = "REPLACE_WITH_PREVIEW_D1_DATABASE_ID"
+
+[[env.preview.r2_buckets]]
+binding = "LICENSING_R2"
+bucket_name = "panoramicireland-licensing-preview"
+
+[[env.preview.r2_buckets]]
+binding = "MEDIA_R2"
+bucket_name = "panoramicireland-media"
