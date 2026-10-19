@@ -193,6 +193,7 @@ function curlOne(url) {
   const age = headerValue(headers, 'age');
   const bunny = headerValue(headers, 'x-bunny-cache');
   const bunnyMs = headerValue(headers, 'x-bunny-fetch-ms');
+  const workerMs = headerValue(headers, 'x-worker-response-ms');
   const backend = headerValue(headers, 'x-media-backend');
   const ray = headerValue(headers, 'cf-ray');
   const type = headerValue(headers, 'content-type');
@@ -212,6 +213,7 @@ function curlOne(url) {
     age,
     bunny,
     bunnyMs,
+    workerMs,
     backend,
     colo,
     type,
@@ -286,7 +288,9 @@ function formatLine(i, total, r) {
   if (!r.ok) {
     return `${n} FAIL${colo} ${r.status} ${r.error || r.type || ''} ${pathOnly}`;
   }
-  return `${n} ${String(r.cf).padEnd(8)}${colo} ${r.status} ${kb.padStart(6)} total=${String(r.ms).padStart(5)}ms ttfb=${String(r.ttfbMs).padStart(5)}ms${age} ${pathOnly}`;
+  const worker = r.workerMs ? ` worker=${r.workerMs}ms` : '';
+  const bunny = r.bunnyMs ? ` bunny=${r.bunnyMs}ms` : '';
+  return `${n} ${String(r.cf).padEnd(8)}${colo} ${r.status} ${kb.padStart(6)} ttfb=${String(r.ttfbMs).padStart(5)}ms total=${String(r.ms).padStart(5)}ms${worker}${bunny}${age} ${pathOnly}`;
 }
 
 const curlCheck = spawnSync('curl', ['--version'], { encoding: 'utf8' });

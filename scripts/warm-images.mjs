@@ -184,12 +184,16 @@ async function warmOnce(url) {
       headers: { 'user-agent': 'panoramicireland-image-warmer/1.0' },
       redirect: 'follow',
     });
+    // fetch() resolves on headers — client TTFB (includes runner→CF path).
+    const ttfbMs = Date.now() - started;
     const buf = await res.arrayBuffer();
     const type = res.headers.get('content-type') || '';
     // Workers Cache ([cache] + Cache-Control) surfaces as cf-cache-status.
     const cache = cacheLabel(res.headers.get('cf-cache-status'));
     const age = res.headers.get('age');
     const colo = coloFromCfRay(res.headers.get('cf-ray'));
+    const workerMs = res.headers.get('x-worker-response-ms');
+    const bunnyMs = res.headers.get('x-bunny-fetch-ms');
     return {
       url,
       ok: res.ok && /^image\//i.test(type),
@@ -199,7 +203,10 @@ async function warmOnce(url) {
       colo,
       age: age != null && age !== '' ? age : null,
       bytes: buf.byteLength,
+      ttfbMs,
       ms: Date.now() - started,
+      workerMs: workerMs != null && workerMs !== '' ? workerMs : null,
+      bunnyMs: bunnyMs != null && bunnyMs !== '' ? bunnyMs : null,
     };
   } catch (err) {
     return {
@@ -211,7 +218,10 @@ async function warmOnce(url) {
       colo: null,
       age: null,
       bytes: 0,
+      ttfbMs: Date.now() - started,
       ms: Date.now() - started,
+      workerMs: null,
+      bunnyMs: null,
       error: err instanceof Error ? err.message : String(err),
     };
   }
@@ -246,8 +256,15 @@ function formatLine(i, total, r) {
   if (!r.ok) {
     return `${n} FAIL ${String(r.cache).padEnd(12)}${colo} ${r.status} ${r.type || ''} ${r.error || ''}${retry} ${path}`;
   }
+  const ttfb =
+    r.ttfbMs != null ? ` ttfb=${String(r.ttfbMs).padStart(4)}ms` : '';
+  const total = ` total=${String(r.ms).padStart(4)}ms`;
+  // On CF HIT these Worker/Bunny values are historical (from first cache fill).
+  const worker =
+    r.workerMs != null ? ` worker=${r.workerMs}ms` : '';
+  const bunny = r.bunnyMs != null ? ` bunny=${r.bunnyMs}ms` : '';
   // Leading token is HIT/MISS/… — MISS is success for a warmer (fills the edge).
-  return `${n} ${String(r.cache).padEnd(12)}${colo} ${r.status} ${kb.padStart(6)} ${String(r.ms).padStart(5)}ms${age}${retry} ${path}`;
+  return `${n} ${String(r.cache).padEnd(12)}${colo} ${r.status} ${kb.padStart(6)}${ttfb}${total}${worker}${bunny}${age}${retry} ${path}`;
 }
 
 async function mapPool(items, concurrency, fn) {

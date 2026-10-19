@@ -10,7 +10,8 @@ export default {
   async fetch(request: Request, env: WorkerEnv, ctx: ExecutionContext) {
     const { pathname } = new URL(request.url);
     if (isMediaPath(pathname) || isSiteIconPath(pathname)) {
-      return serveMedia(request, env, ctx);
+      // Timing starts here (before serve-media) so auth/key work is included.
+      return serveMedia(request, env, ctx, performance.now());
     }
     const response = await handle(request, env, ctx);
     // Workers Cache ([cache] enabled) uses heuristic TTL when Cache-Control is

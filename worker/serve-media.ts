@@ -188,18 +188,41 @@ async function bunnyFetchUrl(env: MediaEnv, key: string): Promise<string | null>
   return signBunnyUrl(base, tokenKey, 3600);
 }
 
+/**
+ * Header-time diagnostics (not body download).
+ * On CF HIT these values are from when the object was first cached — ignore for diagnosis.
+ */
+function attachTimingHeaders(
+  headers: Headers,
+  workerStarted: number,
+  bunnyMs?: number
+): void {
+  const workerMs = performance.now() - workerStarted;
+  headers.set('x-worker-response-ms', workerMs.toFixed(1));
+  const parts = [`worker;dur=${workerMs.toFixed(1)}`];
+  if (bunnyMs != null && Number.isFinite(bunnyMs)) {
+    headers.set('x-bunny-fetch-ms', bunnyMs.toFixed(1));
+    parts.push(`bunny;dur=${bunnyMs.toFixed(1)}`);
+  }
+  const existing = headers.get('server-timing');
+  headers.set(
+    'server-timing',
+    existing ? `${existing}, ${parts.join(', ')}` : parts.join(', ')
+  );
+}
+
 async function serveFromBunny(
   request: Request,
   env: MediaEnv,
   key: string,
-  method: string
+  method: string,
+  workerStarted: number
 ): Promise<Response> {
   const bunnyUrl = await bunnyFetchUrl(env, key);
   if (!bunnyUrl) {
-    return new Response('Bunny origin not configured', {
-      status: 500,
-      headers: { 'cache-control': 'private, no-store' },
-    });
+    const headers = new Headers({ 'cache-control': 'private, no-store' });
+    attachTimingHeaders(headers, workerStarted);
+    return new Response('Bunny origin not configured', { status: 500, headers });
   }
 
   const fwd = new Headers();
@@ -209,13 +232,14 @@ async function serveFromBunny(
   }
 
   // Do not create a second Cloudflare fetch-cache of Bunny origin responses.
-  const t0 = Date.now();
+  // await fetch resolves on headers — bunnyMs is TTFB to Bunny, not full body.
+  const bunnyStarted = performance.now();
   const upstream = await fetch(bunnyUrl, {
     method,
     headers: fwd,
     cache: 'no-store',
   });
-  const bunnyFetchMs = Date.now() - t0;
+  const bunnyMs = performance.now() - bunnyStarted;
   const bunnyCache =
     upstream.headers.get('CDN-Cache') ||
     upstream.headers.get('cdn-cache') ||
@@ -233,8 +257,8 @@ async function serveFromBunny(
       status === 403 ? 'bunny-403-r2' : 'bunny-miss-r2'
     );
     headers.set('x-bunny-cache', bunnyCache);
-    headers.set('x-bunny-fetch-ms', String(bunnyFetchMs));
     headers.set('x-bunny-upstream-status', String(status));
+    attachTimingHeaders(headers, workerStarted, bunnyMs);
     return new Response(r2.body, { status: r2.status, headers });
   }
 
@@ -255,11 +279,11 @@ async function serveFromBunny(
   headers.set('x-content-type-options', 'nosniff');
   headers.set('x-media-backend', 'bunny');
   headers.set('x-bunny-cache', bunnyCache);
-  headers.set('x-bunny-fetch-ms', String(bunnyFetchMs));
   headers.set(
     'cache-control',
     okCacheable ? successCacheControl(key) : ERROR_CACHE_CONTROL
   );
+  attachTimingHeaders(headers, workerStarted, bunnyMs);
 
   // Stream body; HEAD / 304 have no body.
   const body =
@@ -273,7 +297,8 @@ async function serveFromBunny(
 export async function serveMedia(
   request: Request,
   env: MediaEnv,
-  _ctx: ExecutionContext
+  _ctx: ExecutionContext,
+  workerStarted = performance.now()
 ): Promise<Response> {
   const method = request.method.toUpperCase();
   if (method !== 'GET' && method !== 'HEAD') {
@@ -290,7 +315,10 @@ export async function serveMedia(
   }
 
   if (mediaBackend(env) === 'bunny') {
-    return serveFromBunny(request, env, key, method);
+    return serveFromBunny(request, env, key, method, workerStarted);
   }
-  return serveFromR2(request, env, key, method);
+  const r2 = await serveFromR2(request, env, key, method);
+  const headers = new Headers(r2.headers);
+  attachTimingHeaders(headers, workerStarted);
+  return new Response(r2.body, { status: r2.status, headers });
 }
