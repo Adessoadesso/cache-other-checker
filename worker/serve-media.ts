@@ -114,11 +114,26 @@ function successCacheControl(key: string): string {
   return isSiteIconPath(`/${key}`) ? ICON_CACHE_CONTROL : CACHE_CONTROL;
 }
 
+/** Diagnostic: ?nocache=1 → private, no-store (skips Workers Caching admission). */
+function wantsNoStore(url: URL): boolean {
+  return url.searchParams.get('nocache') === '1';
+}
+
+function mediaCacheControl(
+  key: string,
+  noStore: boolean,
+  okCacheable = true
+): string {
+  if (noStore) return 'private, no-store';
+  return okCacheable ? successCacheControl(key) : ERROR_CACHE_CONTROL;
+}
+
 async function serveFromR2(
   request: Request,
   env: MediaEnv,
   key: string,
-  method: string
+  method: string,
+  noStore = false
 ): Promise<Response> {
   const hasRange = request.headers.has('range');
   const getOpts: R2GetOptions = { onlyIf: request.headers };
@@ -136,9 +151,10 @@ async function serveFromR2(
   const headers = new Headers();
   object.writeHttpMetadata(headers);
   headers.set('etag', object.httpEtag);
-  headers.set('cache-control', successCacheControl(key));
+  headers.set('cache-control', mediaCacheControl(key, noStore));
   headers.set('x-content-type-options', 'nosniff');
   headers.set('x-media-backend', 'r2');
+  if (noStore) headers.set('x-diag-nocache', '1');
   if (!headers.has('content-type')) {
     headers.set('content-type', guessContentType(key));
   }
@@ -216,7 +232,8 @@ async function serveFromBunny(
   env: MediaEnv,
   key: string,
   method: string,
-  workerStarted: number
+  workerStarted: number,
+  noStore: boolean
 ): Promise<Response> {
   const bunnyUrl = await bunnyFetchUrl(env, key);
   if (!bunnyUrl) {
@@ -250,7 +267,7 @@ async function serveFromBunny(
   // Missing / token edge-cases on Bunny → R2 (same public URL; never 403 HTML to browsers).
   if (status === 404 || status === 403) {
     upstream.body?.cancel();
-    const r2 = await serveFromR2(request, env, key, method);
+    const r2 = await serveFromR2(request, env, key, method, noStore);
     const headers = new Headers(r2.headers);
     headers.set(
       'x-media-backend',
@@ -258,6 +275,7 @@ async function serveFromBunny(
     );
     headers.set('x-bunny-cache', bunnyCache);
     headers.set('x-bunny-upstream-status', String(status));
+    if (noStore) headers.set('x-diag-nocache', '1');
     attachTimingHeaders(headers, workerStarted, bunnyMs);
     return new Response(r2.body, { status: r2.status, headers });
   }
@@ -279,10 +297,8 @@ async function serveFromBunny(
   headers.set('x-content-type-options', 'nosniff');
   headers.set('x-media-backend', 'bunny');
   headers.set('x-bunny-cache', bunnyCache);
-  headers.set(
-    'cache-control',
-    okCacheable ? successCacheControl(key) : ERROR_CACHE_CONTROL
-  );
+  headers.set('cache-control', mediaCacheControl(key, noStore, okCacheable));
+  if (noStore) headers.set('x-diag-nocache', '1');
   attachTimingHeaders(headers, workerStarted, bunnyMs);
 
   // Stream body; HEAD / 304 have no body.
@@ -314,10 +330,12 @@ export async function serveMedia(
     return new Response('Bad Request', { status: 400 });
   }
 
+  const noStore = wantsNoStore(url);
+
   if (mediaBackend(env) === 'bunny') {
-    return serveFromBunny(request, env, key, method, workerStarted);
+    return serveFromBunny(request, env, key, method, workerStarted, noStore);
   }
-  const r2 = await serveFromR2(request, env, key, method);
+  const r2 = await serveFromR2(request, env, key, method, noStore);
   const headers = new Headers(r2.headers);
   attachTimingHeaders(headers, workerStarted);
   return new Response(r2.body, { status: r2.status, headers });
